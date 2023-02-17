@@ -1,20 +1,30 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(new_tech)
+set(TARGET_NAME new_tech)
+
+project(${TARGET_NAME})
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+
 find_package(GDAL REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(Boost COMPONENTS filesystem REQUIRED)
 
-include_directories(${GDAL_INCLUDE_DIR})
+include_directories(
+    ${GDAL_INCLUDE_DIR}
+    ${OpenCV_INCLUDE_DIRS}
+    )
 
-set(new_tech_src 
+set(SRC_FILE
     main.cpp
-)
+  )
 
-add_executable(new_tech ${new_tech_src})
+add_executable(${TARGET_NAME} ${SRC_FILE})
 
-target_precompile_headers(new_tech PRIVATE pch.h)
+target_precompile_headers(${TARGET_NAME} PRIVATE pch.h)
 
-target_link_directories(new_tech PRIVATE ${GDAL_LIBRARY})
+target_link_libraries(${TARGET_NAME} PRIVATE ${GDAL_LIBRARY} ${Boost_LIBRARIES} ${OpenCV_LIBS})

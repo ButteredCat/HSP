@@ -33,6 +33,7 @@
 
 # build directories
 build/
+bin/
 
 # IDE files
 .vs/
