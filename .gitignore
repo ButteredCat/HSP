@@ -37,3 +37,4 @@ bin/
 
 # IDE files
 .vs/
+.vscode/
