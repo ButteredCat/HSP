@@ -1,10 +1,14 @@
 #include "pch.h"
+#include "radiometric.hpp"
+
 
 namespace po = boost::program_options;
  
 
 int main(int argc, char* argv[]) {
     try{
+        GDALAllRegister();
+        
         // Declare a group of options that will be 
         // allowed only on command line
         po::options_description generic("Generic options");
@@ -69,6 +73,7 @@ int main(int argc, char* argv[]) {
             input_files = vm["input-file"].as<decltype(input_files)>();
             for(auto&& each: input_files) {
                 std::cout << each << "\n";
+                hsp::read(each);
             }
         } else {
             throw std::invalid_argument("no input files");

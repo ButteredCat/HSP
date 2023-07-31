@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-set(TARGET_NAME hsip)
+set(TARGET_NAME hsp)
 
 project(${TARGET_NAME})
 

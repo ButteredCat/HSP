@@ -38,3 +38,6 @@ bin/
 # IDE files
 .vs/
 .vscode/
+
+# test data
+data/
