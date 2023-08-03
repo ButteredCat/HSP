@@ -1,0 +1,1 @@
+#include "AreaScanData.h"

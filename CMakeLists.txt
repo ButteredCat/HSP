@@ -28,4 +28,6 @@ add_executable(${TARGET_NAME} ${SRC_FILE})
 
 target_precompile_headers(${TARGET_NAME} PRIVATE pch.h)
 
-target_link_libraries(${TARGET_NAME} PRIVATE ${GDAL_LIBRARY} ${Boost_LIBRARIES} ${OpenCV_LIBS} spdlog::spdlog)
+target_link_libraries(${TARGET_NAME} PRIVATE ${GDAL_LIBRARY} ${Boost_LIBRARIES} ${OpenCV_LIBS} spdlog::spdlog hycodec)
+
+add_subdirectory(hycodec)
