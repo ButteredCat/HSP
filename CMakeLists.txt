@@ -4,7 +4,7 @@ set(TARGET_NAME hsp)
 
 project(${TARGET_NAME})
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
@@ -19,17 +19,9 @@ include_directories(
     ${GDAL_INCLUDE_DIR}
     ${OpenCV_INCLUDE_DIRS}
     include/
+    src/
     )
 
-set(SRC_FILE
-    main.cpp
-  )
 
-add_executable(${TARGET_NAME} ${SRC_FILE})
-
-target_precompile_headers(${TARGET_NAME} PRIVATE pch.h)
-
-target_link_libraries(${TARGET_NAME} PRIVATE ${GDAL_LIBRARY} ${Boost_LIBRARIES} ${OpenCV_LIBS} spdlog::spdlog hycodec)
-
-add_subdirectory(hycodec)
-add_subdirectory(test)
+add_subdirectory(src)
+add_subdirectory(app)

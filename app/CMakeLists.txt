@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 
-set (TARGET_NAME test)
+set (TARGET_NAME app)
 
 project(${TARGET_NAME} LANGUAGES CXX)
 
-set(SRC_FILES iter_impl.cpp)
+set(SRC_FILES main.cpp)
 
 add_executable(${TARGET_NAME}  ${SRC_FILES})
 

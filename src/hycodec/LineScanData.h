@@ -10,7 +10,10 @@ class LineScanData : public IRawData {
   int n_samples() const { return sensor_width(); }
   int n_lines() const { return sensor_height(); };
   int n_bands() const { return n_frames(); };
-  void traverse() override;
-  void decode(const std::string& dst_file, int begin, int end) override{};
+  void Traverse() override;
+  void ToRaster(const std::string& dst_file, int begin, int end) override;
+
+ protected:
+  //virtual std::vector<char> PrepareData(const std::vector<char>& data);
 };
 }  // namespace hsp

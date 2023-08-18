@@ -1,7 +1,7 @@
 #include "hycodec/HgyNIRDecoder.h"
 #include "hycodec/LineScanData.h"
-#include "pch.h"
-#include "radiometric.hpp"
+#include "../pch.h"
+#include "../radiometric.hpp"
 
 namespace po = boost::program_options;
 
@@ -73,12 +73,15 @@ int main(int argc, char *argv[]) {
       input_files = vm["input-file"].as<decltype(input_files)>();
       for (auto &&each : input_files) {
         std::cout << each << "\n";
-        //hsp::read(each);
-        using namespace hsp;
-        auto decoder = std::make_shared<HgyNIRDecoder>();
-        LineScanData raw_data(each, decoder);
-        raw_data.set_frame_aux_size(1024).set_word_length(12).set_compressed(false).set_leading_bytes("NAIS");
-        raw_data.traverse();
+
+        auto decoder = std::make_shared<hsp::HgyNIRDecoder>();
+        hsp::LineScanData raw_data(each, decoder);
+        raw_data.set_max_aux_size(1024)
+            .set_word_length(12)
+            .set_compressed(false)
+            .set_leading_bytes("NAIS");
+        raw_data.Traverse();
+        raw_data.ToRaster("/home/xiaoyc/repo/hsp/data/res.dat", 0, 500);
       }
     } else {
       throw std::invalid_argument("no input files");

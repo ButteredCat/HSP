@@ -15,6 +15,7 @@ class IDecoder {
   const DataType& get_data() const { return aux_data_; }
   virtual int width() const = 0;
   virtual int height() const = 0;
+  virtual int frame_aux_size() const = 0;
   virtual bool is_leading_bytes_matched(const std::string& bytes) const = 0;
 
  private:
