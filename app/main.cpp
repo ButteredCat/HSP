@@ -11,20 +11,29 @@
 
 #include "iterator/LineIterator.hpp"
 
-
 int main(void) {
   GDALAllRegister();
   std::string filename =
-      "/home/xiaoyc/dataset/HGY/HGY_SWIR-20230429_110205-00000_outdark.dat";
+      "/home/xiaoyc/dataset/HGY/HGY_SWIR-20230429_110205-00000_outdark_mod_ref.dat";
   std::string raw_file =
       "/home/xiaoyc/dataset/HGY/nir/Goldeye-20230103_142007-00000.dat";
   std::string out_file = "/home/xiaoyc/dataset/HGY/nir/out.dat";
+  std::string out_raster = "/home/xiaoyc/dataset/HGY/out_raster.dat";
   auto dataset = GDALDatasetUniquePtr(
       GDALDataset::FromHandle(GDALOpen(filename.c_str(), GA_Update)));
-  hsp::raster::LineInputIterator<uint16_t> beg(dataset.get(), 0), end(dataset.get());
-  for(auto it = beg; it != end; ++it) {
-    auto line = *it;
+  hsp::raster::LineInputIterator<float> beg(dataset.get(), 0),
+      end(dataset.get());
+
+  auto poDriver = GetGDALDriverManager()->GetDriverByName("ENVI");
+  if(!poDriver) {
+    throw std::exception();
   }
+  auto out_dataset = GDALDatasetUniquePtr(GDALDataset::FromHandle(
+      poDriver->CreateCopy(out_raster.c_str(), dataset.get(), FALSE, 0, 0, 0)));
+  hsp::raster::LineOutputIterator<float> obeg(out_dataset.get(), 0),
+      oend(out_dataset.get());
+
+  std::copy(beg, end, obeg);
 
   return 0;
 }

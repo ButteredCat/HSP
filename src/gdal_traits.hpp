@@ -1,8 +1,11 @@
-#ifndef GDAL_TRAITS_HPP
-#define GDAL_TRAITS_HPP
+// Copyright (C) 2023-2024 xiaoyc
+#ifndef SRC_GDAL_TRAITS_HPP_
+#define SRC_GDAL_TRAITS_HPP_
 
+// GDAL
 #include <gdal.h>
 
+// C++ Standard
 #include <complex>
 
 namespace hsp {
@@ -12,122 +15,86 @@ template <typename _Tp>
 class DataType {
  public:
   typedef _Tp value_type;
-  static GDALDataType type() { return GDT_Unknown; };
-  // enum{
-  //   type         = GDT_Unknown
-  // };
+  static GDALDataType type() { return GDT_Unknown; }
 };
 
 template <>
 class DataType<unsigned char> {
  public:
   typedef unsigned char value_type;
-  static GDALDataType type() { return GDT_Byte; };
-  // enum {
-  //   type         = GDT_Byte
-  // };
+  static GDALDataType type() { return GDT_Byte; }
 };
 
 template <>
-class DataType<unsigned short> {
+class DataType<uint16_t> {
  public:
-  typedef unsigned short value_type;
-  static GDALDataType type() { return GDT_UInt16; };
-  // enum {
-  //   type         = GDT_UInt16
-  // };
+  typedef uint16_t value_type;
+  static GDALDataType type() { return GDT_UInt16; }
 };
 
 template <>
-class DataType<short> {
+class DataType<int16_t> {
  public:
-  typedef short value_type;
-  static GDALDataType type() { return GDT_Int16; };
-  // enum {
-  //   type         = GDT_Int16
-  // };
+  typedef int16_t value_type;
+  static GDALDataType type() { return GDT_Int16; }
 };
 
 template <>
-class DataType<unsigned int> {
+class DataType<uint32_t> {
  public:
-  typedef unsigned int value_type;
-  static GDALDataType type() { return GDT_UInt32; };
-  // enum {
-  //   type         = GDT_UInt32
-  // };
+  typedef uint32_t value_type;
+  static GDALDataType type() { return GDT_UInt32; }
 };
 
 template <>
-class DataType<int> {
+class DataType<int32_t> {
  public:
-  typedef int value_type;
-  static GDALDataType type() { return GDT_Int32; };
-  // enum {
-  //   type         = GDT_Int32
-  // };
+  typedef int32_t value_type;
+  static GDALDataType type() { return GDT_Int32; }
 };
 
 template <>
 class DataType<float> {
  public:
   typedef float value_type;
-  static GDALDataType type() { return GDT_Float32; };
-  // enum {
-  //   type         = GDT_Float32
-  // };
+  static GDALDataType type() { return GDT_Float32; }
 };
 
 template <>
 class DataType<double> {
  public:
   typedef double value_type;
-  static GDALDataType type() { return GDT_Float64; };
-  // enum {
-  //   type         = GDT_Float64
-  // };
+  static GDALDataType type() { return GDT_Float64; }
 };
 
 template <>
-class DataType<std::complex<short> > {
+class DataType<std::complex<int16_t> > {
  public:
-  typedef std::complex<short> value_type;
-  static GDALDataType type() { return GDT_CInt16; };
-  // enum {
-  //   type         = GDT_CInt16
-  // };
+  typedef std::complex<int16_t> value_type;
+  static GDALDataType type() { return GDT_CInt16; }
 };
 
 template <>
-class DataType<std::complex<int> > {
+class DataType<std::complex<int32_t> > {
  public:
-  typedef std::complex<int> value_type;
-  static GDALDataType type() { return GDT_CInt32; };
-  // enum {
-  //   type         = GDT_CInt32
-  // };
+  typedef std::complex<int32_t> value_type;
+  static GDALDataType type() { return GDT_CInt32; }
 };
 
 template <>
 class DataType<std::complex<float> > {
  public:
   typedef std::complex<float> value_type;
-  static GDALDataType type() { return GDT_CFloat32; };
-  // enum {
-  //   type         = GDT_CFloat32
-  // };
+  static GDALDataType type() { return GDT_CFloat32; }
 };
 
 template <>
 class DataType<std::complex<double> > {
  public:
   typedef std::complex<double> value_type;
-  static GDALDataType type() { return GDT_CFloat64; };
-  // enum {
-  //   type         = GDT_CFloat64
-  // };
+  static GDALDataType type() { return GDT_CFloat64; }
 };
 
 }  // namespace gdal
 }  // namespace hsp
-#endif
+#endif  // SRC_GDAL_TRAITS_HPP_
