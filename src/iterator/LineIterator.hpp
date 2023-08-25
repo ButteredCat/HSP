@@ -13,8 +13,8 @@
 #include <opencv2/core.hpp>
 
 // project
-#include "../src/gdal_traits.hpp"
-#include "../src/types.hpp"
+#include "../gdal_traits.hpp"
+#include "../types.hpp"
 
 namespace hsp {
 namespace raster {

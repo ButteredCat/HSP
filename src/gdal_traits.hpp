@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2024 xiaoyc
+// Copyright (C) 2023 xiaoyc
 #ifndef SRC_GDAL_TRAITS_HPP_
 #define SRC_GDAL_TRAITS_HPP_
 

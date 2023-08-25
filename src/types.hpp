@@ -1,11 +1,10 @@
 // Copyright (C) 2023 Xiao Yunchen
-#ifndef SRC_TYPES_HPP
-#define SRC_TYPES_HPP
+#ifndef SRC_TYPES_HPP_
+#define SRC_TYPES_HPP_
 
 #include <boost/smart_ptr/shared_ptr.hpp>
 
-
-namespace hsp{
+namespace hsp {
 template <typename T>
 struct Image {
   Image() = default;
@@ -17,4 +16,4 @@ struct Image {
 };
 }  // namespace hsp
 
-#endif  // SRC_TYPES_HPP
+#endif  // SRC_TYPES_HPP_

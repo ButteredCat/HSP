@@ -9,7 +9,8 @@
 #include <string>
 #include <vector>
 
-#include "iterator/LineIterator.hpp"
+#include "../src/iterator/BandIterator.hpp"
+#include "../src/iterator/LineIterator.hpp"
 
 int main(void) {
   GDALAllRegister();
@@ -22,7 +23,7 @@ int main(void) {
   std::string out_raster = "/home/xiaoyc/dataset/HGY/out_raster.dat";
   auto dataset = GDALDatasetUniquePtr(
       GDALDataset::FromHandle(GDALOpen(filename.c_str(), GA_Update)));
-  dataset->GetRasterBand(1)->GetRasterDataType();
+  dataset->GetBands();
   hsp::raster::LineInputIterator<float> beg(dataset.get(), 0),
       end(dataset.get());
 
@@ -35,7 +36,11 @@ int main(void) {
   hsp::raster::LineOutputIterator<float> obeg(out_dataset.get(), 0),
       oend(out_dataset.get());
 
-  //std::copy(beg, end, obeg);
-  std::transform(beg, end, obeg, [](const hsp::Image<float>& im) {return im;});
+  hsp::raster::BandInputIterator<uint16_t> b_beg(dataset.get(), 0), b_end(dataset.get());
+  auto xx = *b_beg;
+
+  // std::copy(beg, end, obeg);
+  std::transform(beg, end, obeg,
+                 [](const hsp::Image<float>& im) { return im; });
   return 0;
 }
