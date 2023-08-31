@@ -1,44 +1,67 @@
 #include <gdal.h>
-#include <gdal_priv.h>
 
-#include <boost/foreach.hpp>
-#include <boost/iterator/function_input_iterator.hpp>
-#include <boost/range/istream_range.hpp>
-#include <fstream>
+#include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
+#include <exception>
 #include <iostream>
 #include <string>
-#include <vector>
 
-// #include "../src/iterator/BandIterator.hpp"
-// #include "../src/iterator/LineIterator.hpp"
-#include "../src/iterator.hpp"
+namespace po = boost::program_options;
 
-int main(void) {
-  GDALAllRegister();
-  std::string filename =
-      "/home/xiaoyc/dataset/HGY/"
-      "HGY_SWIR-20230429_110205-00000_outdark_mod_ref.dat";
-  std::string raw_file =
-      "/home/xiaoyc/dataset/HGY/nir/Goldeye-20230103_142007-00000.dat";
-  std::string out_file = "/home/xiaoyc/dataset/HGY/nir/out.dat";
-  std::string out_raster = "/home/xiaoyc/dataset/HGY/out_raster.dat";
-  auto dataset = GDALDatasetUniquePtr(
-      GDALDataset::FromHandle(GDALOpen(filename.c_str(), GA_Update)));
-  dataset->GetBands();
-  hsp::LineInputIterator<float> beg(dataset.get(), 0), end(dataset.get());
-  //auto xx = *beg;
-  auto poDriver = GetGDALDriverManager()->GetDriverByName("ENVI");
-  if (!poDriver) {
-    throw std::exception();
+namespace fs = boost::filesystem;
+
+void time_consuming() {
+  const int loop = 100;
+  double a{1.0}, b{2.0};
+  for (int i = 0; i < loop; ++i) {
+    for (int j = 0; j < loop; ++j) {
+      for (int k = 0; k < loop; ++k) {
+        a *= b;
+      }
+    }
   }
-  auto out_dataset = GDALDatasetUniquePtr(GDALDataset::FromHandle(
-      poDriver->CreateCopy(out_raster.c_str(), dataset.get(), FALSE, 0, 0, 0)));
-  hsp::LineOutputIterator<float> obeg(out_dataset.get(), 0),
-      oend(out_dataset.get());
-  //*obeg;
+}
 
-  std::copy(beg, end, obeg);
-  //  std::transform(beg, end, obeg,
-  //                 [](const hsp::Image<float>& im) { return im; });
+void do_computation(const fs::path& input, const fs::path& output,
+                    const fs::path& workdir) {
+  time_consuming();
+  auto filename = input.filename();
+  std::vector<fs::path> source{filename,
+                               fs::path(filename).replace_extension("hdr"),
+                               fs::path(filename).replace_extension("jpg")};
+  std::vector<fs::path> dest{output, fs::path(output).replace_extension("hdr"),
+                             fs::path(output).replace_extension("jpg")};
+  try {
+    for (auto i = 0; i < source.size(); ++i) {
+      fs::copy(workdir / source[i], dest[i],
+               fs::copy_options::overwrite_existing);
+    }
+  } catch (...) {
+  }
+}
+
+int main(int argc, char* argv[]) {
+  try {
+    po::options_description config("Configuration");
+    config.add_options()("input,i", po::value<std::string>(), "input image")(
+        "output,o", po::value<std::string>(), "output image")(
+        "workdir,w", po::value<std::string>(), "workdir")(
+        "task", po::value<std::string>(), "task xml");
+    po::options_description cmdline_options;
+    cmdline_options.add(config);
+
+    po::variables_map vm;
+    po::store(
+        po::command_line_parser(argc, argv).options(cmdline_options).run(), vm);
+
+    std::string input = vm["input"].as<std::string>();
+    std::string output = vm["output"].as<std::string>();
+    std::string workdir = vm["workdir"].as<std::string>();
+
+    do_computation(input, output, workdir);
+  } catch (const std::exception& e) {
+    std::cerr << e.what() << "\n";
+    return -1;
+  }
   return 0;
 }
