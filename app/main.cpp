@@ -9,8 +9,9 @@
 #include <string>
 #include <vector>
 
-#include "../src/iterator/BandIterator.hpp"
-#include "../src/iterator/LineIterator.hpp"
+// #include "../src/iterator/BandIterator.hpp"
+// #include "../src/iterator/LineIterator.hpp"
+#include "../src/iterator.hpp"
 
 int main(void) {
   GDALAllRegister();
@@ -24,23 +25,20 @@ int main(void) {
   auto dataset = GDALDatasetUniquePtr(
       GDALDataset::FromHandle(GDALOpen(filename.c_str(), GA_Update)));
   dataset->GetBands();
-  hsp::raster::LineInputIterator<float> beg(dataset.get(), 0),
-      end(dataset.get());
-
+  hsp::LineInputIterator<float> beg(dataset.get(), 0), end(dataset.get());
+  //auto xx = *beg;
   auto poDriver = GetGDALDriverManager()->GetDriverByName("ENVI");
   if (!poDriver) {
     throw std::exception();
   }
   auto out_dataset = GDALDatasetUniquePtr(GDALDataset::FromHandle(
       poDriver->CreateCopy(out_raster.c_str(), dataset.get(), FALSE, 0, 0, 0)));
-  hsp::raster::LineOutputIterator<float> obeg(out_dataset.get(), 0),
+  hsp::LineOutputIterator<float> obeg(out_dataset.get(), 0),
       oend(out_dataset.get());
+  //*obeg;
 
-  hsp::raster::BandInputIterator<uint16_t> b_beg(dataset.get(), 0), b_end(dataset.get());
-  auto xx = *b_beg;
-
-  // std::copy(beg, end, obeg);
-  std::transform(beg, end, obeg,
-                 [](const hsp::Image<float>& im) { return im; });
+  std::copy(beg, end, obeg);
+  //  std::transform(beg, end, obeg,
+  //                 [](const hsp::Image<float>& im) { return im; });
   return 0;
 }
