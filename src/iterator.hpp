@@ -7,6 +7,7 @@
 #include <gdal_priv.h>
 
 // C++ Standard
+#include <exception>
 
 // Boost
 #include <boost/iterator/iterator_facade.hpp>
@@ -43,6 +44,7 @@ class InputIterator_
         default:
           cur_ = n_bands_;
       }
+      max_idx_ = cur_;
     }
   }
   InputIterator_(GDALDataset* dataset, int cur) : dataset_{dataset}, cur_{cur} {
@@ -50,19 +52,33 @@ class InputIterator_
       n_samples_ = dataset->GetRasterXSize();
       n_lines_ = dataset->GetRasterYSize();
       n_bands_ = dataset->GetRasterCount();
+      CPLErr err;
       switch (N) {
         case 1:
           img_ = cv::Mat::zeros(cv::Size(n_lines_, n_bands_),
                                 cv::DataType<T>::type);
+          err = dataset_->RasterIO(GF_Read, cur_, 0, 1, n_lines_, img_.data, 1,
+                                   n_lines_, gdal::DataType<T>::type(),
+                                   n_bands_, nullptr, 0, 0, 0);
+          max_idx_ = n_samples_;
           break;
         case 2:
           img_ = cv::Mat::zeros(cv::Size(n_samples_, n_bands_),
                                 cv::DataType<T>::type);
+          err = dataset_->RasterIO(GF_Read, 0, cur_, n_samples_, 1, img_.data,
+                                   n_samples_, 1, gdal::DataType<T>::type(),
+                                   n_bands_, nullptr, 0, 0, 0);
+          max_idx_ = n_lines_;
           break;
         default:
           img_ = cv::Mat::zeros(cv::Size(n_samples_, n_lines_),
                                 cv::DataType<T>::type);
+          err = dataset_->GetRasterBand(cur_ + 1)->RasterIO(
+              GF_Read, 0, 0, n_samples_, n_lines_, img_.data, n_samples_,
+              n_lines_, gdal::DataType<T>::type(), 0, 0);
+          max_idx_ = n_bands_;
       }
+      ++cur_;
     }
   }
 
@@ -72,31 +88,38 @@ class InputIterator_
   int n_lines_;
   int n_bands_;
   int cur_;
+  int max_idx_;
   cv::Mat img_;
 
  private:
   bool equal(InputIterator_ const& other) const { return cur_ == other.cur_; }
   void increment() {
-    CPLErr err;
-    switch (N) {
-      case 1:
-        err = dataset_->RasterIO(GF_Read, cur_, 0, 1, n_lines_, img_.data, 1,
-                                 n_lines_, gdal::DataType<T>::type(), n_bands_,
-                                 nullptr, 0, 0, 0);
-        break;
-      case 2:
-        err = dataset_->RasterIO(GF_Read, 0, cur_, n_samples_, 1, img_.data,
-                                 n_samples_, 1, gdal::DataType<T>::type(),
-                                 n_bands_, nullptr, 0, 0, 0);
-        break;
-      default:
-        err = dataset_->GetRasterBand(cur_ + 1)->RasterIO(
-            GF_Read, 0, 0, n_samples_, n_lines_, img_.data, n_samples_,
-            n_lines_, gdal::DataType<T>::type(), 0, 0);
-    }
+    read_data_(cur_);
     ++cur_;
   }
   reference dereference() const { return img_; }
+
+  void read_data_(int idx) {
+    if (idx < max_idx_ && idx > 0) {
+      CPLErr err;
+      switch (N) {
+        case 1:
+          err = dataset_->RasterIO(GF_Read, idx, 0, 1, n_lines_, img_.data, 1,
+                                   n_lines_, gdal::DataType<T>::type(),
+                                   n_bands_, nullptr, 0, 0, 0);
+          break;
+        case 2:
+          err = dataset_->RasterIO(GF_Read, 0, idx, n_samples_, 1, img_.data,
+                                   n_samples_, 1, gdal::DataType<T>::type(),
+                                   n_bands_, nullptr, 0, 0, 0);
+          break;
+        default:
+          err = dataset_->GetRasterBand(idx + 1)->RasterIO(
+              GF_Read, 0, 0, n_samples_, n_lines_, img_.data, n_samples_,
+              n_lines_, gdal::DataType<T>::type(), 0, 0);
+      }
+    }
+  }
 };
 
 template <typename T>
