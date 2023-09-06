@@ -40,14 +40,14 @@ int main(void) {
   const int buffer_size = n_samples * n_lines * GDALGetDataTypeSize(type);
   auto buffer = std::make_unique<char[]>(buffer_size);
   CPLErr err;
-  for (int i = 0; i < dataset->GetRasterCount(); ++i) {
-    err = out_dataset->GetRasterBand(i + 1)->RasterIO(
-        GF_Write, 0, 0, n_samples, n_lines, beg->data, n_samples, n_lines, type,
-        0, 0);
-    ++beg;
-  }
+  // for (int i = 0; i < dataset->GetRasterCount(); ++i) {
+  //   err = out_dataset->GetRasterBand(i + 1)->RasterIO(
+  //       GF_Write, 0, 0, n_samples, n_lines, beg->data, n_samples, n_lines, type,
+  //       0, 0);
+  //   ++beg;
+  // }
 
-  // std::copy(beg, end, obeg);
+  std::copy(beg, end, obeg);
   //    std::transform(beg, end, obeg,
   //                   [](const hsp::Image<float>& im) { return im; });
   return 0;

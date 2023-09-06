@@ -1,0 +1,154 @@
+// Copyright (C) 2023 Xiao Yunchen
+#include "../src/iterator.hpp"
+
+#include <gdal.h>
+#include <gdal_priv.h>
+#include <gtest/gtest.h>
+
+#include <boost/filesystem.hpp>
+#include <fstream>
+
+namespace fs = boost::filesystem;
+
+
+bool file_compare(const std::string& a, const std::string& b) {
+  std::ifstream in_a(a, std::ios::binary);
+  std::ifstream in_b(b, std::ios::binary);
+  in_a.seekg(0, std::ios::end);
+  auto size_a = in_a.tellg();
+  in_b.seekg(0, std::ios::end);
+  auto size_b = in_b.tellg();
+  if (size_a != size_b) {
+    return false;
+  }
+  in_a.seekg(0, std::ios::beg);
+  in_b.seekg(0, std::ios::beg);
+
+  const int buffer_size = 4096;
+  auto buffer_a = std::make_unique<char[]>(buffer_size);
+  auto buffer_b = std::make_unique<char[]>(buffer_size);
+  while (in_a >> buffer_a.get()) {
+    in_b >> buffer_b.get();
+    if (!memcmp(buffer_a.get(), buffer_b.get(), buffer_size)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+class IteratorTest : public ::testing::Test {
+ protected:
+  void SetUp() override {
+    GDALAllRegister();
+    ASSERT_TRUE(fs::exists(src_file));
+    src_dataset = GDALDatasetUniquePtr(
+        GDALDataset::FromHandle(GDALOpen(src_file.c_str(), GA_Update)));
+    ASSERT_NE(nullptr, src_dataset) << "Source dataset should be created.";
+    auto poDriver = GetGDALDriverManager()->GetDriverByName("ENVI");
+    ASSERT_NE(nullptr, poDriver);
+
+    if (fs::exists(dst_file)) {
+      fs::remove(dst_file);
+    }
+    dst_dataset =
+        GDALDatasetUniquePtr(GDALDataset::FromHandle(poDriver->CreateCopy(
+            dst_file.c_str(), src_dataset.get(), false, 0, 0, 0)));
+    ASSERT_NE(nullptr, dst_dataset);
+
+    n_samples = src_dataset->GetRasterXSize();
+    n_lines = src_dataset->GetRasterYSize();
+    n_bands = src_dataset->GetRasterCount();
+    type = src_dataset->GetRasterBand(1)->GetRasterDataType();
+  }
+
+  void TearDown() override {
+    if (fs::exists(dst_file)) {
+      fs::remove(dst_file);
+    }
+  }
+
+ protected:
+  GDALDatasetUniquePtr src_dataset{nullptr}, dst_dataset{nullptr};
+  const std::string src_file =
+      "/home/xiaoyc/dataset/HGY/"
+      "HGY_SWIR-20230429_110205-00000_outdark_mod_ref.dat";
+  const std::string dst_file = "/tmp/out.dat";
+  int n_samples = 0;
+  int n_lines = 0;
+  int n_bands = 0;
+  GDALDataType type;
+};
+
+TEST_F(IteratorTest, SampleInputIteratorCanBeCreated) {
+  hsp::SampleInputIterator<float> beg(src_dataset.get(), 0),
+      end(src_dataset.get());
+  SUCCEED() << "Failed to create iterator";
+}
+
+TEST_F(IteratorTest, LineInputIteratorCanBeCreated) {
+  hsp::LineInputIterator<float> beg(src_dataset.get(), 0),
+      end(src_dataset.get());
+  SUCCEED() << "Failed to create iterator";
+}
+
+TEST_F(IteratorTest, BandInputIteratorCanBeCreated) {
+  hsp::BandInputIterator<float> beg(src_dataset.get(), 0),
+      end(src_dataset.get());
+  SUCCEED() << "Failed to create iterator";
+}
+
+TEST_F(IteratorTest, SampleInputIteratorCanBeDereferenced) {
+  hsp::SampleInputIterator<float> it(src_dataset.get(), 0);
+  *it;
+  SUCCEED() << "Failed to dereference iterator";
+}
+
+TEST_F(IteratorTest, LineInputIteratorCanBeDereferenced) {
+  hsp::LineInputIterator<float> it(src_dataset.get(), 0);
+  *it;
+  SUCCEED() << "Failed to dereference iterator";
+}
+
+TEST_F(IteratorTest, BandInputIteratorCanBeDereferenced) {
+  hsp::BandInputIterator<float> it(src_dataset.get(), 0);
+  *it;
+  SUCCEED() << "Failed to dereference iterator";
+}
+
+TEST_F(IteratorTest, SampleInputIteratorIncrement) {
+  hsp::SampleInputIterator<float> it(src_dataset.get(), 0);
+  ++it;
+  it++;
+  SUCCEED() << "Failed to increment iterator";
+}
+
+TEST_F(IteratorTest, LineInputIteratorIncrement) {
+  hsp::LineInputIterator<float> it(src_dataset.get(), 0);
+  ++it;
+  it++;
+  SUCCEED() << "Failed to increment iterator";
+}
+
+TEST_F(IteratorTest, BandInputIteratorIncrement) {
+  hsp::BandInputIterator<float> it(src_dataset.get(), 0);
+  ++it;
+  it++;
+  SUCCEED() << "Failed to increment iterator";
+}
+
+TEST_F(IteratorTest, BandIteratedFileIdentical) {
+  hsp::BandInputIterator<float> beg(src_dataset.get(), 0),
+      end(src_dataset.get());
+
+  const int buffer_size = n_samples * n_lines * GDALGetDataTypeSize(type);
+  auto buffer = std::make_unique<char[]>(buffer_size);
+  CPLErr err;
+  for (int i = 0; i < n_bands; ++i) {
+    err = dst_dataset->GetRasterBand(i + 1)->RasterIO(
+        GF_Write, 0, 0, n_samples, n_lines, beg->data, n_samples, n_lines, type,
+        0, 0);
+    ++beg;
+  }
+}
+
+TEST_F(IteratorTest, LineInputIteratorTest) { EXPECT_EQ(9, 9); }
