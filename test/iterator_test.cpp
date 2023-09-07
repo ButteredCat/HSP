@@ -1,17 +1,19 @@
 // Copyright (C) 2023 Xiao Yunchen
 #include "../src/iterator.hpp"
 
-#include <gdal.h>
-#include <gdal_priv.h>
+// GTest
 #include <gtest/gtest.h>
 
-#include <boost/filesystem.hpp>
+// C++ Standard
 #include <fstream>
+
+// Boost
+#include <boost/filesystem.hpp>
+
 
 namespace fs = boost::filesystem;
 
-
-bool file_compare(const std::string& a, const std::string& b) {
+bool filecmp(const std::string& a, const std::string& b) {
   std::ifstream in_a(a, std::ios::binary);
   std::ifstream in_b(b, std::ios::binary);
   in_a.seekg(0, std::ios::end);
@@ -29,7 +31,7 @@ bool file_compare(const std::string& a, const std::string& b) {
   auto buffer_b = std::make_unique<char[]>(buffer_size);
   while (in_a >> buffer_a.get()) {
     in_b >> buffer_b.get();
-    if (!memcmp(buffer_a.get(), buffer_b.get(), buffer_size)) {
+    if (memcmp(buffer_a.get(), buffer_b.get(), buffer_size) != 0) {
       return false;
     }
   }
@@ -44,16 +46,6 @@ class IteratorTest : public ::testing::Test {
     src_dataset = GDALDatasetUniquePtr(
         GDALDataset::FromHandle(GDALOpen(src_file.c_str(), GA_Update)));
     ASSERT_NE(nullptr, src_dataset) << "Source dataset should be created.";
-    auto poDriver = GetGDALDriverManager()->GetDriverByName("ENVI");
-    ASSERT_NE(nullptr, poDriver);
-
-    if (fs::exists(dst_file)) {
-      fs::remove(dst_file);
-    }
-    dst_dataset =
-        GDALDatasetUniquePtr(GDALDataset::FromHandle(poDriver->CreateCopy(
-            dst_file.c_str(), src_dataset.get(), false, 0, 0, 0)));
-    ASSERT_NE(nullptr, dst_dataset);
 
     n_samples = src_dataset->GetRasterXSize();
     n_lines = src_dataset->GetRasterYSize();
@@ -67,8 +59,21 @@ class IteratorTest : public ::testing::Test {
     }
   }
 
+  void CreateDst() {
+    auto poDriver = GetGDALDriverManager()->GetDriverByName("ENVI");
+    ASSERT_NE(nullptr, poDriver);
+
+    if (fs::exists(dst_file)) {
+      fs::remove(dst_file);
+    }
+    dst_dataset = poDriver->CreateCopy(dst_file.c_str(), src_dataset.get(),
+                                       false, 0, 0, 0);
+    ASSERT_NE(nullptr, dst_dataset);
+  }
+
  protected:
-  GDALDatasetUniquePtr src_dataset{nullptr}, dst_dataset{nullptr};
+  GDALDatasetUniquePtr src_dataset{nullptr};
+  GDALDataset* dst_dataset{nullptr};
   const std::string src_file =
       "/home/xiaoyc/dataset/HGY/"
       "HGY_SWIR-20230429_110205-00000_outdark_mod_ref.dat";
@@ -136,19 +141,51 @@ TEST_F(IteratorTest, BandInputIteratorIncrement) {
   SUCCEED() << "Failed to increment iterator";
 }
 
-TEST_F(IteratorTest, BandIteratedFileIdentical) {
-  hsp::BandInputIterator<float> beg(src_dataset.get(), 0),
-      end(src_dataset.get());
+TEST_F(IteratorTest, LineInputIteratorCopy) {
+  hsp::LineInputIterator<float> beg(src_dataset.get(), 0);
+
+  const int buffer_size = n_samples * n_bands * GDALGetDataTypeSize(type);
+  auto buffer = std::make_unique<char[]>(buffer_size);
+  CPLErr err;
+  CreateDst();
+  for (int i = 0; i < n_lines; ++i) {
+    err = dst_dataset->RasterIO(GF_Write, 0, i, n_samples, 1, beg->data,
+                                n_samples, 1, type, n_bands, nullptr, 0, 0, 0);
+    ++beg;
+  }
+  GDALClose(dst_dataset);
+  EXPECT_TRUE(filecmp(src_file, dst_file));
+}
+
+TEST_F(IteratorTest, BandInputIteratorCopy) {
+  hsp::BandInputIterator<float> beg(src_dataset.get(), 0);
 
   const int buffer_size = n_samples * n_lines * GDALGetDataTypeSize(type);
   auto buffer = std::make_unique<char[]>(buffer_size);
   CPLErr err;
+  CreateDst();
   for (int i = 0; i < n_bands; ++i) {
     err = dst_dataset->GetRasterBand(i + 1)->RasterIO(
         GF_Write, 0, 0, n_samples, n_lines, beg->data, n_samples, n_lines, type,
         0, 0);
     ++beg;
   }
+  GDALClose(dst_dataset);
+  EXPECT_TRUE(filecmp(src_file, dst_file));
 }
 
-TEST_F(IteratorTest, LineInputIteratorTest) { EXPECT_EQ(9, 9); }
+TEST_F(IteratorTest, SampleInputIteratorCopy) {
+  hsp::SampleInputIterator<float> beg(src_dataset.get(), 0);
+
+  const int buffer_size = n_bands * n_lines * GDALGetDataTypeSize(type);
+  auto buffer = std::make_unique<char[]>(buffer_size);
+  CPLErr err;
+  CreateDst();
+  for (int i = 0; i < n_samples; ++i) {
+    err = dst_dataset->RasterIO(GF_Write, i, 0, 1, n_lines, beg->data, 1,
+                                n_lines, type, n_bands, nullptr, 0, 0, 0);
+    beg++;
+  }
+  GDALClose(dst_dataset);
+  EXPECT_TRUE(filecmp(src_file, dst_file));
+}
