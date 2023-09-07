@@ -11,7 +11,7 @@ C++ 14, Boost 1.71, GDAL 2.3, OpenCV 4
 ## 测试
 运行cpplint进行静态代码检查:
 ```
-cpplint --recursive src test app
+cpplint --recursive --quiet src test app
 ```
 
 使用GoogleTest框架进行集成测试：

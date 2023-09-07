@@ -1,10 +1,17 @@
-#pragma once
+// Copyright (C) 2023 Xiao Yunchen
+#ifndef SRC_GDALEX_HPP_
+#define SRC_GDALEX_HPP_
 
+// GDAL
 #include <gdal_priv.h>
 
+// C++ Standard
 #include <algorithm>
 #include <limits>
+#include <map>
+#include <string>
 #include <utility>
+
 
 inline char* strlwr(char* str) {
   char* orig = str;
@@ -67,7 +74,7 @@ inline bool IsRasterDataset(const char* filepath) {
   }
   fclose(fp);
   char path[512];
-  strcpy(path, filepath);
+  strcpy(path, filepath);  // NOLINT
   char* p = strrchr(path, '.');
   if (p && GetGDALDescription(p + 1, nullptr)) {
     return true;
@@ -75,7 +82,7 @@ inline bool IsRasterDataset(const char* filepath) {
   if (p == nullptr) {
     p = path + strlen(path);
   }
-  strcpy(p, ".hdr");
+  strcpy(p, ".hdr");  // NOLINT
   fp = fopen(path, "r");
   if (fp == nullptr) {
     return false;
@@ -89,11 +96,11 @@ inline std::pair<double, double> GetDataTypeMinMax(GDALDataType type) {
     case GDT_Byte:
       return std::make_pair(0, 255);
     case GDT_Int16:
-      return std::make_pair(std::numeric_limits<short>::min(),
-                            std::numeric_limits<short>::max());
+      return std::make_pair(std::numeric_limits<int16_t>::min(),
+                            std::numeric_limits<int16_t>::max());
     case GDT_UInt16:
-      return std::make_pair(std::numeric_limits<unsigned short>::min(),
-                            std::numeric_limits<unsigned short>::max());
+      return std::make_pair(std::numeric_limits<uint16_t>::min(),
+                            std::numeric_limits<uint16_t>::max());
     case GDT_Float64:
     default:
       return std::make_pair(std::numeric_limits<float>::min(),
@@ -114,3 +121,5 @@ inline GDALDataset* GDALCreate(const char* filepath, int cols, int rows,
   dataset = poDriver->Create(filepath, cols, rows, bands, type, nullptr);
   return dataset;
 }
+
+#endif  // SRC_GDALEX_HPP_

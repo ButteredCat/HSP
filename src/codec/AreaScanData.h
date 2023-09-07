@@ -1,3 +1,4 @@
+// Copyright (C) 2023 Xiao Yunchen
 #pragma once
 
 #include "IRawData.h"

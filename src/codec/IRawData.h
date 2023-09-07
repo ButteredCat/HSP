@@ -1,10 +1,15 @@
+// Copyright (C) 2023 Xiao Yunchen
 #pragma once
+
+// C++ Standard
+#include <fstream>
+#include <iterator>
 #include <memory>
 #include <stdexcept>
 #include <string>
-#include <fstream>
-#include <iterator>
+#include <vector>
 
+// project
 #include "IDecoder.h"
 
 namespace hsp {
@@ -23,12 +28,12 @@ class IRawData {
   using frame_iterator = std::istream_iterator<char>;
   using RawFrame = std::vector<char>;
   friend std::istream& operator>>(std::istream& stream, RawFrame& frame) {
-    const 
-    stream.read(RawFrame.data(), 1);
+    const stream.read(RawFrame.data(), 1);
   }
+
  public:
   IRawData(const std::string& raw_data, const DecoderPtr& aux_decoder)
-      : raw_data_{raw_data}, aux_dec{aux_decoder} {};
+      : raw_data_{raw_data}, aux_dec{aux_decoder} {}
   virtual void Traverse() = 0;
   virtual void ToRaster(const std::string& dst_file, int begin, int end) = 0;
   bool is_traversed() const { return is_traversed_; }

@@ -1,4 +1,8 @@
+// Copyright (C) 2023 Xiao Yunchen
 #pragma once
+
+// C++ Standard
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -11,7 +15,7 @@ class IDecoder {
   IDecoder() = default;
   void set_data(const DataType& data) {
     std::copy(data.begin(), data.end(), std::back_inserter(aux_data_));
-  };
+  }
   const DataType& get_data() const { return aux_data_; }
   virtual int width() const = 0;
   virtual int height() const = 0;

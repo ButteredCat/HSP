@@ -1,14 +1,19 @@
+// Copyright (C) 2023 Xiao Yunchen
 #pragma once
-#include <boost/iterator/iterator_facade.hpp>
+
+// C++ Standard
 #include <memory>
 #include <string>
+
+// Boost
+#include <boost/iterator/iterator_facade.hpp>
 
 namespace hsp {
 
 enum class Endian { Little = 1, Big = 2 };
 
 class RawData {
-  RawData(const std::string& filename):filename_{filename} {};
+  explicit RawData(const std::string& filename) : filename_{filename} {}
   virtual void Traverse() = 0;
 
   bool is_traversed() const { return is_traversed_; }
@@ -58,7 +63,7 @@ class RawData {
   void set_traversed(bool value) { is_traversed_ = value; }
 
  private:
- const std::string filename_;
+  const std::string filename_;
   int word_length_ = 16;
   bool is_traversed_ = false;
   bool is_compressed_ = false;

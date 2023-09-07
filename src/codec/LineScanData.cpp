@@ -1,14 +1,22 @@
+// Copyright (C) 2023 Xiao Yunchen
+// related
 #include "LineScanData.h"
 
+// GDAL
 #include <gdal.h>
 #include <gdal_priv.h>
 
-#include <boost/filesystem.hpp>
+// C++ Standard
 #include <exception>
 #include <fstream>
+#include <vector>
 
-#include "gdal_traits.hpp"
-#include "gdalex.hpp"
+// Boost
+#include <boost/filesystem.hpp>
+
+// project
+#include "../gdal_traits.hpp"
+#include "../gdalex.hpp"
 
 namespace hsp {
 

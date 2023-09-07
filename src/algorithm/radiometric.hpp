@@ -1,4 +1,2 @@
-#ifndef __HSP_ALGORITHM_RADIOMETRIC_HPP__
-#define __HSP_ALGORITHM_RADIOMETRIC_HPP__
-
-#endif // #ifndef __HSP_ALGORITHM_RADIOMETRIC_HPP__
+// Copyright (C) 2023 xiaoyc
+#pragma once
