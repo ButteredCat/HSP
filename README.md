@@ -9,14 +9,14 @@ C++ 14, Boost 1.71, GDAL 2.3, OpenCV 4
 集成测试框架 GoogleTest
 
 ## 测试
-静态代码检查
+运行cpplint进行静态代码检查:
 ```
 cpplint --recursive src test app
 ```
 
-集成测试
+使用GoogleTest框架进行集成测试：
 ```
-cd build
-make hsp_test
-ctest
+cmake -S . -B build
+cmake --build build --target hsp-test
+cd build && ctest
 ```

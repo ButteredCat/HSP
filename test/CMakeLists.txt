@@ -1,20 +1,16 @@
 cmake_minimum_required(VERSION 3.16)
 
-set (TARGET_NAME hsp_test)
+set (TARGET_NAME hsp-test)
 
+file(GLOB SRC_FILES *.cpp *.cc)
 
+add_executable(${TARGET_NAME} ${SRC_FILES})
 
-
-add_executable(
-  ${TARGET_NAME}
-  iterator_test.cpp
-)
-target_link_libraries(
-  ${TARGET_NAME}
+target_link_libraries(${TARGET_NAME} PRIVATE
   GTest::gtest_main
-  ${Boost_LIBRARIES}  ${GDAL_LIBRARY} ${OpenCV_LIBS}
+  ${Boost_LIBRARIES}
+  ${GDAL_LIBRARY}
+  ${OpenCV_LIBS}
 )
-
 
 gtest_discover_tests(${TARGET_NAME})
-
