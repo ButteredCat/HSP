@@ -1,20 +1,27 @@
 # HSP
 统一的高光谱数据处理框架。
 
-## 编译需求
-C++ 14, Boost 1.71, GDAL 2.3, OpenCV 4
+## 环境需求
+### 基础编译
+- C++ 14
+- CMake 3.16
+- Boost 1.71
+- GDAL 2.3
+- OpenCV 4
 
-静态代码检查工具 cpplint
+### 代码静态检查工具
+[cpplint](https://github.com/cpplint/cpplint)
 
-集成测试框架 GoogleTest
+### 集成测试框架 
+[GoogleTest](https://github.com/google/googletest)
 
 ## 测试
-运行cpplint进行静态代码检查:
+静态代码检查:
 ```
 cpplint --recursive --quiet src test app
 ```
 
-使用GoogleTest框架进行集成测试：
+集成测试：
 ```
 cmake -S . -B build
 cmake --build build --target hsp-test
