@@ -134,7 +134,7 @@ using BandInputIterator = InputIterator_<T, 3>;
 template <typename T, unsigned N>
 class OutputIterator_
     : public boost::iterator_facade<OutputIterator_<T, N>, cv::Mat,
-                                    boost::single_pass_traversal_tag> {
+                                    std::output_iterator_tag> {
   friend boost::iterator_core_access;
 
  public:
@@ -217,8 +217,63 @@ using SampleOutputIterator = OutputIterator_<T, 1>;
 template <typename T>
 using LineOutputIterator = OutputIterator_<T, 2>;
 
+// template <typename T>
+// using BandOutputIterator = OutputIterator_<T, 3>;
+
 template <typename T>
-using BandOutputIterator = OutputIterator_<T, 3>;
+class BandOutputIterator
+    : public std::iterator<std::output_iterator_tag, void, void, void, void> {
+ public:
+  explicit BandOutputIterator(GDALDataset* dataset) : dataset_{dataset} {
+    if (dataset) {
+      n_samples_ = dataset->GetRasterXSize();
+      n_lines_ = dataset->GetRasterYSize();
+      n_bands_ = dataset->GetRasterCount();
+      cur_ = n_bands_;
+    }
+  }
+  BandOutputIterator(GDALDataset* dataset, int cur)
+      : dataset_{dataset}, cur_{cur} {
+    if (dataset) {
+      n_samples_ = dataset->GetRasterXSize();
+      n_lines_ = dataset->GetRasterYSize();
+      n_bands_ = dataset->GetRasterCount();
+      img_ =
+          cv::Mat::zeros(cv::Size(n_samples_, n_lines_), cv::DataType<T>::type);
+    }
+  }
+
+  BandOutputIterator& operator=(const cv::Mat& value) {
+    dataset_->GetRasterBand(cur_ + 1)->RasterIO(
+        GF_Write, 0, 0, n_samples_, n_lines_, value.data, n_samples_, n_lines_,
+        gdal::DataType<T>::type(), 0, 0);
+    return *this;
+  }
+  BandOutputIterator& operator++() {
+    ++cur_;
+    return *this;
+  }
+  BandOutputIterator operator++(int) {
+    BandOutputIterator<T> old(*this);
+    ++(*this);
+    return old;
+  }
+  bool operator==(const BandOutputIterator& other) const {
+    return cur_ == other.cur_;
+  }
+  bool operator!=(const BandOutputIterator& other) const {
+    return !(*this == other);
+  }
+  cv::Mat& operator*() { return img_; }
+
+ private:
+  GDALDataset* dataset_;
+  int n_samples_;
+  int n_lines_;
+  int n_bands_;
+  int cur_;
+  cv::Mat img_;
+};
 
 }  // namespace hsp
 

@@ -10,7 +10,6 @@
 // Boost
 #include <boost/filesystem.hpp>
 
-
 namespace fs = boost::filesystem;
 
 bool filecmp(const std::string& a, const std::string& b) {
@@ -143,14 +142,11 @@ TEST_F(IteratorTest, BandInputIteratorIncrement) {
 
 TEST_F(IteratorTest, LineInputIteratorCopy) {
   hsp::LineInputIterator<float> beg(src_dataset.get(), 0);
-
-  const int buffer_size = n_samples * n_bands * GDALGetDataTypeSize(type);
-  auto buffer = std::make_unique<char[]>(buffer_size);
-  CPLErr err;
   CreateDst();
   for (int i = 0; i < n_lines; ++i) {
-    err = dst_dataset->RasterIO(GF_Write, 0, i, n_samples, 1, beg->data,
-                                n_samples, 1, type, n_bands, nullptr, 0, 0, 0);
+    auto err =
+        dst_dataset->RasterIO(GF_Write, 0, i, n_samples, 1, beg->data,
+                              n_samples, 1, type, n_bands, nullptr, 0, 0, 0);
     ++beg;
   }
   GDALClose(dst_dataset);
@@ -159,13 +155,9 @@ TEST_F(IteratorTest, LineInputIteratorCopy) {
 
 TEST_F(IteratorTest, BandInputIteratorCopy) {
   hsp::BandInputIterator<float> beg(src_dataset.get(), 0);
-
-  const int buffer_size = n_samples * n_lines * GDALGetDataTypeSize(type);
-  auto buffer = std::make_unique<char[]>(buffer_size);
-  CPLErr err;
   CreateDst();
   for (int i = 0; i < n_bands; ++i) {
-    err = dst_dataset->GetRasterBand(i + 1)->RasterIO(
+    auto err = dst_dataset->GetRasterBand(i + 1)->RasterIO(
         GF_Write, 0, 0, n_samples, n_lines, beg->data, n_samples, n_lines, type,
         0, 0);
     ++beg;
@@ -176,16 +168,60 @@ TEST_F(IteratorTest, BandInputIteratorCopy) {
 
 TEST_F(IteratorTest, SampleInputIteratorCopy) {
   hsp::SampleInputIterator<float> beg(src_dataset.get(), 0);
-
-  const int buffer_size = n_bands * n_lines * GDALGetDataTypeSize(type);
-  auto buffer = std::make_unique<char[]>(buffer_size);
-  CPLErr err;
   CreateDst();
   for (int i = 0; i < n_samples; ++i) {
-    err = dst_dataset->RasterIO(GF_Write, i, 0, 1, n_lines, beg->data, 1,
-                                n_lines, type, n_bands, nullptr, 0, 0, 0);
+    auto err = dst_dataset->RasterIO(GF_Write, i, 0, 1, n_lines, beg->data,
+    1,
+                                     n_lines, type, n_bands, nullptr, 0, 0,
+                                     0);
     beg++;
   }
+  GDALClose(dst_dataset);
+  EXPECT_TRUE(filecmp(src_file, dst_file));
+}
+
+TEST_F(IteratorTest, SampleOutputIteratorCanBeCreated) {
+  CreateDst();
+  hsp::SampleOutputIterator<float> beg(dst_dataset, 0), end(dst_dataset);
+  GDALClose(dst_dataset);
+  SUCCEED() << "Failed to create iterator";
+}
+
+TEST_F(IteratorTest, LineOutputIteratorCanBeCreated) {
+  CreateDst();
+  hsp::LineOutputIterator<float> beg(dst_dataset, 0), end(dst_dataset);
+  GDALClose(dst_dataset);
+  SUCCEED() << "Failed to create iterator";
+}
+
+TEST_F(IteratorTest, BandOutputIteratorCanBeCreated) {
+  CreateDst();
+  hsp::BandOutputIterator<float> beg(dst_dataset, 0), end(dst_dataset);
+  GDALClose(dst_dataset);
+  SUCCEED() << "Failed to create iterator";
+}
+
+TEST_F(IteratorTest, BandOutputIteratorCopy) {
+  cv::Mat img =
+      cv::Mat::zeros(cv::Size(n_samples, n_lines), cv::DataType<float>::type);
+  CreateDst();
+  hsp::BandOutputIterator<float> beg(dst_dataset, 0);
+  for (int i = 0; i < n_bands; ++i) {
+    auto err = src_dataset->GetRasterBand(i + 1)->RasterIO(
+        GF_Read, 0, 0, n_samples, n_lines, img.data, n_samples, n_lines, type,
+        0, 0);
+    *beg;
+    ++beg;
+  }
+  GDALClose(dst_dataset);
+  EXPECT_TRUE(filecmp(src_file, dst_file));
+}
+
+TEST_F(IteratorTest, BandIteratorCopy) {
+  hsp::BandInputIterator<float> beg(src_dataset.get(), 0), end(src_dataset.get());
+  hsp::BandOutputIterator<float> obeg(dst_dataset, 0);
+  std::copy(beg, end, obeg);
+  CreateDst(); 
   GDALClose(dst_dataset);
   EXPECT_TRUE(filecmp(src_file, dst_file));
 }

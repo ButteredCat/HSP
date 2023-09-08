@@ -24,7 +24,7 @@ int main(void) {
   std::string out_raster = "/home/xiaoyc/dataset/HGY/out_raster.dat";
   auto dataset = GDALDatasetUniquePtr(
       GDALDataset::FromHandle(GDALOpen(filename.c_str(), GA_Update)));
-  hsp::BandInputIterator<float> beg(dataset.get(), 0), end(dataset.get());
+  // hsp::BandInputIterator<float> beg(dataset.get(), 0), end(dataset.get());
 
   auto poDriver = GetGDALDriverManager()->GetDriverByName("ENVI");
   if (!poDriver) {
@@ -38,17 +38,17 @@ int main(void) {
   const int n_lines = dataset->GetRasterYSize();
   const auto type = dataset->GetRasterBand(1)->GetRasterDataType();
   const int buffer_size = n_samples * n_lines * GDALGetDataTypeSize(type);
-  auto buffer = std::make_unique<char[]>(buffer_size);
-  CPLErr err;
-  for (int i = 0; i < dataset->GetRasterCount(); ++i) {
-    err = out_dataset->GetRasterBand(i + 1)->RasterIO(
-        GF_Write, 0, 0, n_samples, n_lines, beg->data, n_samples, n_lines, type,
-        0, 0);
-    ++beg;
-  }
+  cv::Mat img =
+      cv::Mat::zeros(cv::Size(n_samples, n_lines), cv::DataType<float>::type);
 
-  //std::copy(beg, end, obeg);
-  //    std::transform(beg, end, obeg,
-  //                   [](const hsp::Image<float>& im) { return im; });
+  for (auto&& band : dataset->GetBands()) {
+    auto err = band->RasterIO(GF_Read, 0, 0, n_samples, n_lines, img.data,
+                              n_samples, n_lines, type, 0, 0);
+    *obeg = img;
+    ++obeg;
+  }
+  // std::copy(beg, end, obeg);
+  //     std::transform(beg, end, obeg,
+  //                    [](const hsp::Image<float>& im) { return im; });
   return 0;
 }
