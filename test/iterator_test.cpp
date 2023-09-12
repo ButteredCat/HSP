@@ -1,5 +1,4 @@
 // Copyright (C) 2023 Xiao Yunchen
-#include "../src/iterator.hpp"
 
 // GTest
 #include <gtest/gtest.h>
@@ -9,6 +8,10 @@
 
 // Boost
 #include <boost/filesystem.hpp>
+
+// project
+#include "../src/iterator.hpp"
+#include "../src/algorithm/radiometric.hpp"
 
 namespace fs = boost::filesystem;
 
@@ -252,4 +255,18 @@ TEST_F(IteratorTest, BandIteratorCopy) {
   GDALClose(dst_dataset);
   EXPECT_TRUE(filecmp(src_file, dst_file))
       << "Destination file is not identical with source.";
+}
+
+TEST_F(IteratorTest, UnaryOperation) {
+  hsp::LineInputIterator<float> beg(src_dataset.get(), 0),
+      end(src_dataset.get());
+  CreateDst();
+  hsp::LineOutputIterator<float> obeg(dst_dataset, 0);
+  auto dbc = hsp::make_op<hsp::DarkBackgroundCorrection>();
+  auto nuc = hsp::make_op<hsp::NonUniformityCorrection>();
+  hsp::UnaryOpCombo ops;
+  ops.add(dbc).add(nuc);
+  std::transform(beg, end, obeg, ops);
+  GDALClose(dst_dataset);
+  EXPECT_TRUE(filecmp(src_file, dst_file));
 }
