@@ -133,63 +133,20 @@ using BandInputIterator = InputIterator_<T, 3>;
 
 template <typename T, unsigned N>
 class OutputIterator_
-    : public boost::iterator_facade<OutputIterator_<T, N>, cv::Mat,
-                                    std::output_iterator_tag> {
-  friend boost::iterator_core_access;
-
+    : public std::iterator<std::output_iterator_tag, void, void, void, void> {
  public:
-  using reference = cv::Mat&;
   explicit OutputIterator_(GDALDataset* dataset) : dataset_{dataset} {
-    if (dataset) {
-      n_samples_ = dataset->GetRasterXSize();
-      n_lines_ = dataset->GetRasterYSize();
-      n_bands_ = dataset->GetRasterCount();
-      switch (N) {
-        case 1:
-          cur_ = n_samples_;
-          break;
-        case 2:
-          cur_ = n_lines_;
-          break;
-        default:
-          cur_ = n_bands_;
-      }
-    }
+    init_();
+    const int cur_table[] = {n_samples_, n_lines_, n_lines_};
+    cur_ = cur_table[N - 1];
   }
   OutputIterator_(GDALDataset* dataset, int cur)
       : dataset_{dataset}, cur_{cur} {
-    if (dataset) {
-      n_samples_ = dataset->GetRasterXSize();
-      n_lines_ = dataset->GetRasterYSize();
-      n_bands_ = dataset->GetRasterCount();
-      switch (N) {
-        case 1:
-          img_ = cv::Mat::zeros(cv::Size(n_lines_, n_bands_),
-                                cv::DataType<T>::type);
-          break;
-        case 2:
-          img_ = cv::Mat::zeros(cv::Size(n_samples_, n_bands_),
-                                cv::DataType<T>::type);
-          break;
-        default:
-          img_ = cv::Mat::zeros(cv::Size(n_samples_, n_lines_),
-                                cv::DataType<T>::type);
-      }
-    }
+    init_();
+    img_ = cv::Mat::zeros(get_img_size_(), cv::DataType<T>::type);
   }
 
- private:
-  GDALDataset* dataset_;
-  int n_samples_;
-  int n_lines_;
-  int n_bands_;
-  int cur_;
-  cv::Mat img_;
-
- private:
-  bool equal(OutputIterator_ const& other) const { return cur_ == other.cur_; }
-  void increment() { ++cur_; }
-  reference dereference() const {
+  OutputIterator_& operator=(const cv::Mat& value) {
     CPLErr err;
     switch (N) {
       case 1:
@@ -204,64 +161,25 @@ class OutputIterator_
         break;
       default:
         err = dataset_->GetRasterBand(cur_ + 1)->RasterIO(
-            GF_Write, 0, 0, n_samples_, n_lines_, img_.data, n_samples_,
+            GF_Write, 0, 0, n_samples_, n_lines_, value.data, n_samples_,
             n_lines_, gdal::DataType<T>::type(), 0, 0);
     }
-    return const_cast<reference>(img_);
-  }
-};
 
-template <typename T>
-using SampleOutputIterator = OutputIterator_<T, 1>;
-
-template <typename T>
-using LineOutputIterator = OutputIterator_<T, 2>;
-
-// template <typename T>
-// using BandOutputIterator = OutputIterator_<T, 3>;
-
-template <typename T>
-class BandOutputIterator
-    : public std::iterator<std::output_iterator_tag, void, void, void, void> {
- public:
-  explicit BandOutputIterator(GDALDataset* dataset) : dataset_{dataset} {
-    if (dataset) {
-      n_samples_ = dataset->GetRasterXSize();
-      n_lines_ = dataset->GetRasterYSize();
-      n_bands_ = dataset->GetRasterCount();
-      cur_ = n_bands_;
-    }
-  }
-  BandOutputIterator(GDALDataset* dataset, int cur)
-      : dataset_{dataset}, cur_{cur} {
-    if (dataset) {
-      n_samples_ = dataset->GetRasterXSize();
-      n_lines_ = dataset->GetRasterYSize();
-      n_bands_ = dataset->GetRasterCount();
-      img_ =
-          cv::Mat::zeros(cv::Size(n_samples_, n_lines_), cv::DataType<T>::type);
-    }
-  }
-
-  BandOutputIterator& operator=(const cv::Mat& value) {
-    dataset_->GetRasterBand(cur_ + 1)->RasterIO(
-        GF_Write, 0, 0, n_samples_, n_lines_, value.data, n_samples_, n_lines_,
-        gdal::DataType<T>::type(), 0, 0);
     return *this;
   }
-  BandOutputIterator& operator++() {
+  OutputIterator_& operator++() {
     ++cur_;
     return *this;
   }
-  BandOutputIterator operator++(int) {
-    BandOutputIterator<T> old(*this);
+  OutputIterator_ operator++(int) {
+    OutputIterator_<T, N> old(*this);
     ++(*this);
     return old;
   }
-  bool operator==(const BandOutputIterator& other) const {
+  bool operator==(const OutputIterator_& other) const {
     return cur_ == other.cur_;
   }
-  bool operator!=(const BandOutputIterator& other) const {
+  bool operator!=(const OutputIterator_& other) const {
     return !(*this == other);
   }
   cv::Mat& operator*() { return img_; }
@@ -273,7 +191,37 @@ class BandOutputIterator
   int n_bands_;
   int cur_;
   cv::Mat img_;
+
+ private:
+  void init_() {
+    if (dataset_) {
+      n_samples_ = dataset_->GetRasterXSize();
+      n_lines_ = dataset_->GetRasterYSize();
+      n_bands_ = dataset_->GetRasterCount();
+    } else {
+      throw std::runtime_error("Initialize OutputIterator with nullptr!");
+    }
+  }
+  constexpr cv::Size get_img_size_() {
+    switch (N) {
+      case 1:
+        return cv::Size(n_lines_, n_bands_);
+      case 2:
+        return cv::Size(n_samples_, n_bands_);
+      default:
+        return cv::Size(n_samples_, n_lines_);
+    }
+  }
 };
+
+template <typename T>
+using SampleOutputIterator = OutputIterator_<T, 1>;
+
+template <typename T>
+using LineOutputIterator = OutputIterator_<T, 2>;
+
+template <typename T>
+using BandOutputIterator = OutputIterator_<T, 3>;
 
 }  // namespace hsp
 

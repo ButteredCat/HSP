@@ -170,10 +170,8 @@ TEST_F(IteratorTest, SampleInputIteratorCopy) {
   hsp::SampleInputIterator<float> beg(src_dataset.get(), 0);
   CreateDst();
   for (int i = 0; i < n_samples; ++i) {
-    auto err = dst_dataset->RasterIO(GF_Write, i, 0, 1, n_lines, beg->data,
-    1,
-                                     n_lines, type, n_bands, nullptr, 0, 0,
-                                     0);
+    auto err = dst_dataset->RasterIO(GF_Write, i, 0, 1, n_lines, beg->data, 1,
+                                     n_lines, type, n_bands, nullptr, 0, 0, 0);
     beg++;
   }
   GDALClose(dst_dataset);
@@ -201,6 +199,12 @@ TEST_F(IteratorTest, BandOutputIteratorCanBeCreated) {
   SUCCEED() << "Failed to create iterator";
 }
 
+TEST_F(IteratorTest, CreateIteratorWithNullptr) {
+  EXPECT_THROW(hsp::BandOutputIterator<float> beg(nullptr, 0),
+               std::runtime_error);
+  EXPECT_THROW(hsp::BandOutputIterator<float> end(nullptr), std::runtime_error);
+}
+
 TEST_F(IteratorTest, BandOutputIteratorCopy) {
   cv::Mat img =
       cv::Mat::zeros(cv::Size(n_samples, n_lines), cv::DataType<float>::type);
@@ -217,11 +221,35 @@ TEST_F(IteratorTest, BandOutputIteratorCopy) {
   EXPECT_TRUE(filecmp(src_file, dst_file));
 }
 
+TEST_F(IteratorTest, SampleIteratorCopy) {
+  hsp::SampleInputIterator<float> beg(src_dataset.get(), 0),
+      end(src_dataset.get());
+  CreateDst();
+  hsp::SampleOutputIterator<float> obeg(dst_dataset, 0);
+  std::copy(beg, end, obeg);
+  GDALClose(dst_dataset);
+  EXPECT_TRUE(filecmp(src_file, dst_file))
+      << "Destination file is not identical with source.";
+}
+
+TEST_F(IteratorTest, LineIteratorCopy) {
+  hsp::LineInputIterator<float> beg(src_dataset.get(), 0),
+      end(src_dataset.get());
+  CreateDst();
+  hsp::LineOutputIterator<float> obeg(dst_dataset, 0);
+  std::copy(beg, end, obeg);
+  GDALClose(dst_dataset);
+  EXPECT_TRUE(filecmp(src_file, dst_file))
+      << "Destination file is not identical with source.";
+}
+
 TEST_F(IteratorTest, BandIteratorCopy) {
-  hsp::BandInputIterator<float> beg(src_dataset.get(), 0), end(src_dataset.get());
+  hsp::BandInputIterator<float> beg(src_dataset.get(), 0),
+      end(src_dataset.get());
+  CreateDst();
   hsp::BandOutputIterator<float> obeg(dst_dataset, 0);
   std::copy(beg, end, obeg);
-  CreateDst(); 
   GDALClose(dst_dataset);
-  EXPECT_TRUE(filecmp(src_file, dst_file));
+  EXPECT_TRUE(filecmp(src_file, dst_file))
+      << "Destination file is not identical with source.";
 }
