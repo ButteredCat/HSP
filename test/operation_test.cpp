@@ -83,8 +83,8 @@ TEST_F(OperationTest, DarkBackgroundCorrection) {
   for (auto it = beg; it != end; ++it) {
     cv::Mat res = ops(*it);
     auto err =
-        dst_dataset->RasterIO(GF_Write, 0, j++, n_samples, 1, res.data, n_samples,
-                              1, type, n_bands, nullptr, 0, 0, 0);
+        dst_dataset->RasterIO(GF_Write, 0, j++, n_samples, 1, res.data,
+                              n_samples, 1, type, n_bands, nullptr, 0, 0, 0);
   }
   GDALClose(dst_dataset);
   EXPECT_FALSE(filecmp(src_file, dst_file));

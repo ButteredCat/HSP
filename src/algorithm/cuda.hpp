@@ -3,8 +3,7 @@
 #define SRC_ALGORITHM_CUDA_HPP_
 
 // C++ Standard
-#include <memory>
-#include <vector>
+#include <string>
 
 // OpenCV
 #include <opencv2/core.hpp>

@@ -4,6 +4,8 @@
 
 // C++ Standard
 #include <fstream>
+#include <string>
+#include <vector>
 
 // project
 #include "../gdal_traits.hpp"
@@ -12,39 +14,39 @@
 
 namespace hsp {
 
-template <typename T>
-bool load(const char* filepath, size_t count, T* data) {
-  if (IsRasterDataset(filepath)) {
-    GDALDataset* dataset =
-        reinterpret_cast<GDALDataset*>(GDALOpen(filepath, GA_ReadOnly));
-    if (static_cast<size_t>(dataset->GetRasterXSize()) *
-            dataset->GetRasterYSize() <
-        count) {
-      GDALClose(dataset);
-      return false;
-    }
-    int cols = dataset->GetRasterXSize();
-    int rows = count / cols;
-    if (dataset->RasterIO(GF_Read, 0, 0, cols, rows, data, cols, rows,
-                          gdal::DataType<T>::type(), 1, nullptr, 0, 0, 0)) {
-    }
-    GDALClose(dataset);
-    return true;
-  }
-  FILE* fp = fopen(filepath, "r");
-  if (fp == nullptr) {
-    return false;
-  }
-  size_t i;
-  for (i = 0; i < count; ++i) {
-    double t;
-    if (fscanf(fp, "%lf%*c", &t) != 1) break;
-    data[i] = (T)t;
-  }
+// template <typename T>
+// bool load(const char* filepath, size_t count, T* data) {
+//   if (IsRasterDataset(filepath)) {
+//     GDALDataset* dataset =
+//         reinterpret_cast<GDALDataset*>(GDALOpen(filepath, GA_ReadOnly));
+//     if (static_cast<size_t>(dataset->GetRasterXSize()) *
+//             dataset->GetRasterYSize() <
+//         count) {
+//       GDALClose(dataset);
+//       return false;
+//     }
+//     int cols = dataset->GetRasterXSize();
+//     int rows = count / cols;
+//     if (dataset->RasterIO(GF_Read, 0, 0, cols, rows, data, cols, rows,
+//                           gdal::DataType<T>::type(), 1, nullptr, 0, 0, 0)) {
+//     }
+//     GDALClose(dataset);
+//     return true;
+//   }
+//   FILE* fp = fopen(filepath, "r");
+//   if (fp == nullptr) {
+//     return false;
+//   }
+//   size_t i;
+//   for (i = 0; i < count; ++i) {
+//     double t;
+//     if (fscanf(fp, "%lf%*c", &t) != 1) break;
+//     data[i] = (T)t;
+//   }
 
-  fclose(fp);
-  return i == count;
-}
+//   fclose(fp);
+//   return i == count;
+// }
 
 template <typename T>
 cv::Mat load_raster(const std::string& filename) {
