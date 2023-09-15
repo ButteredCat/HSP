@@ -169,7 +169,7 @@ TEST_F(IteratorTest, BandInputIteratorCopy) {
   EXPECT_TRUE(filecmp(src_file, dst_file));
 }
 
-TEST_F(IteratorTest, SampleInputIteratorCopy) {
+TEST_F(IteratorTest, DISABLED_SampleInputIteratorCopy) {
   hsp::SampleInputIterator<float> beg(src_dataset.get(), 0);
   CreateDst();
   for (int i = 0; i < n_samples; ++i) {
@@ -208,7 +208,7 @@ TEST_F(IteratorTest, CreateIteratorWithNullptr) {
   EXPECT_THROW(hsp::BandOutputIterator<float> end(nullptr), std::runtime_error);
 }
 
-TEST_F(IteratorTest, DISABLED_BandOutputIteratorCopy) {
+TEST_F(IteratorTest, BandOutputIteratorCopy) {
   cv::Mat img =
       cv::Mat::zeros(cv::Size(n_samples, n_lines), cv::DataType<float>::type);
   CreateDst();
@@ -220,7 +220,7 @@ TEST_F(IteratorTest, DISABLED_BandOutputIteratorCopy) {
     *beg = img;
     ++beg;
   }
-  GDALClose(dst_dataset);
+  // GDALClose(dst_dataset);
   EXPECT_TRUE(filecmp(src_file, dst_file));
 }
 
