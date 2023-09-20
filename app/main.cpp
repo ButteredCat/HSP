@@ -18,10 +18,12 @@
 
 int main(void) {
   using namespace std::chrono;
+  using DataType = uint16_t;
 
   GDALAllRegister();
   const std::string filename =
-      "/home/xiaoyc/dataset/testdata/HGY_SWIR-20230429_110205-00000_out.dat";
+      "/home/xiaoyc/dataset/testdata/"
+      "HGY_SWIR-20230429_110205-00000_outdark_mod.dat";
   const std::string out_raster = "/home/xiaoyc/dataset/testdata/out_raster.dat";
   const std::string dark_coeff = "/home/xiaoyc/dataset/testdata/dark.tif";
   const std::string rel_a_coeff = "/home/xiaoyc/dataset/testdata/rel_a.tif";
@@ -34,8 +36,10 @@ int main(void) {
   const int n_samples = dataset->GetRasterXSize();
   const int n_lines = dataset->GetRasterYSize();
   const int n_bands = dataset->GetRasterCount();
+  std::cout << "samples: " << n_samples << "\nlines: " << n_lines
+            << "\nbands: " << n_bands << "\n";
   const auto type = dataset->GetRasterBand(1)->GetRasterDataType();
-  hsp::LineInputIterator<uint16_t> beg(dataset.get(), 0), end(dataset.get());
+  hsp::LineInputIterator<DataType> beg(dataset.get(), 0), end(dataset.get());
 
   auto poDriver = GetGDALDriverManager()->GetDriverByName("ENVI");
   if (!poDriver) {
@@ -44,23 +48,21 @@ int main(void) {
   auto out_dataset =
       GDALDatasetUniquePtr(GDALDataset::FromHandle(poDriver->Create(
           out_raster.c_str(), n_samples, n_lines, n_bands, type, nullptr)));
-  hsp::LineOutputIterator<uint16_t> obeg(out_dataset.get(), 0);
+  hsp::LineOutputIterator<DataType> obeg(out_dataset.get(), 0);
 
-  auto dbc = hsp::make_op<hsp::cuda::DarkBackgroundCorrection<uint16_t> >();
+  auto dbc = hsp::make_op<hsp::cuda::DarkBackgroundCorrection<DataType> >();
   dbc->load(dark_coeff);
-  auto nuc = hsp::make_op<hsp::NonUniformityCorrection<uint16_t, float> >();
+  auto nuc = hsp::make_op<hsp::NonUniformityCorrection<DataType, float> >();
   nuc->load(rel_a_coeff, rel_b_coeff);
   hsp::UnaryOpCombo ops;
   ops.add(dbc).add(nuc);
-  std::transform(beg, end, obeg, ops);
-  *(++obeg);
+  // std::copy(beg, end, obeg);
+  // std::transform(beg, end, obeg, ops);
+  // *(++obeg);
   // int j = 0;
-  // for (auto it = beg; it != end; ++it) {
-  //   cv::Mat res = ops(*it);
-  //   auto err =
-  //       out_dataset->RasterIO(GF_Write, 0, j++, n_samples, 1, res.data,
-  //                             n_samples, 1, type, n_bands, nullptr, 0, 0, 0);
-  // }
+  for (auto it = beg; it != end; ++it) {
+    *obeg++ = *it;
+  }
 
   auto end_time = system_clock::now();
   auto duration = duration_cast<microseconds>(end_time - start);

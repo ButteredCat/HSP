@@ -7,6 +7,10 @@
 #include <string>
 #include <vector>
 
+// OpenCV
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+
 // project
 #include "../gdal_traits.hpp"
 #include "../gdalex.hpp"
@@ -144,6 +148,15 @@ class AbsoluteRadiometricCorrection : public UnaryOperation {
  private:
   cv::Mat a_;
   cv::Mat b_;
+};
+
+class GaussianFilter : public UnaryOperation {
+ public:
+  cv::Mat operator()(cv::Mat m) override {
+    cv::Mat res;
+    cv::GaussianBlur(m, res, cv::Size(3, 3), 0, 0);
+    return res;
+  }
 };
 
 }  // namespace hsp

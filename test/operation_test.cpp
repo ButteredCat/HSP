@@ -78,7 +78,7 @@ TEST_F(OperationTest, DarkBackgroundCorrection) {
   nuc->load(rel_a_coeff, rel_b_coeff);
   hsp::UnaryOpCombo ops;
   ops.add(dbc).add(nuc);
-  // std::transform(beg, end, obeg, ops);
+  std::transform(beg, end, obeg, ops);
   int j = 0;
   for (auto it = beg; it != end; ++it) {
     cv::Mat res = ops(*it);

@@ -169,7 +169,7 @@ TEST_F(IteratorTest, BandInputIteratorCopy) {
   EXPECT_TRUE(filecmp(src_file, dst_file));
 }
 
-TEST_F(IteratorTest, DISABLED_SampleInputIteratorCopy) {
+TEST_F(IteratorTest, SampleInputIteratorCopy) {
   hsp::SampleInputIterator<float> beg(src_dataset.get(), 0);
   CreateDst();
   for (int i = 0; i < n_samples; ++i) {
@@ -220,11 +220,11 @@ TEST_F(IteratorTest, BandOutputIteratorCopy) {
     *beg = img;
     ++beg;
   }
-  // GDALClose(dst_dataset);
+  GDALClose(dst_dataset);
   EXPECT_TRUE(filecmp(src_file, dst_file));
 }
 
-TEST_F(IteratorTest, DISABLED_SampleIteratorCopy) {
+TEST_F(IteratorTest, SampleIteratorCopy) {
   hsp::SampleInputIterator<float> beg(src_dataset.get(), 0),
       end(src_dataset.get());
   CreateDst();
@@ -235,7 +235,20 @@ TEST_F(IteratorTest, DISABLED_SampleIteratorCopy) {
       << "Destination file is not identical with source.";
 }
 
-TEST_F(IteratorTest, DISABLED_LineIteratorCopy) {
+TEST_F(IteratorTest, LineIteratorCopyWithForLoop) {
+  hsp::LineInputIterator<float> beg(src_dataset.get(), 0),
+      end(src_dataset.get());
+  CreateDst();
+  hsp::LineOutputIterator<float> obeg(dst_dataset, 0);
+  for (auto it = beg; it != end; ++it) {
+    *obeg++ = *it;
+  }
+  GDALClose(dst_dataset);
+  EXPECT_TRUE(filecmp(src_file, dst_file))
+      << "Destination file is not identical with source.";
+}
+
+TEST_F(IteratorTest, LineIteratorCopy) {
   hsp::LineInputIterator<float> beg(src_dataset.get(), 0),
       end(src_dataset.get());
   CreateDst();
@@ -246,7 +259,7 @@ TEST_F(IteratorTest, DISABLED_LineIteratorCopy) {
       << "Destination file is not identical with source.";
 }
 
-TEST_F(IteratorTest, DISABLED_BandIteratorCopy) {
+TEST_F(IteratorTest, BandIteratorCopy) {
   hsp::BandInputIterator<float> beg(src_dataset.get(), 0),
       end(src_dataset.get());
   CreateDst();
