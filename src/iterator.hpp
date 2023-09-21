@@ -31,17 +31,18 @@ namespace hsp {
 
 /**
  * @brief 输入迭代器，用于特化为其他迭代器
- * 
+ *
  * @tparam T 读取影像的数据类型
  * @tparam N 特化迭代器类型，1为样本迭代器，2为波段迭代器，3为波段迭代器
- * 
- * 
- * @details 输入迭代器InputIterator_基于boost::iterator_facade，封装了对GDALDataset所拥有的高光谱数据立方资源通过RasterIO进行的读取操作。
- * 
+ *
+ *
+ * @details
+ * 输入迭代器InputIterator_基于boost::iterator_facade，封装了对GDALDataset所拥有的高光谱数据立方资源通过RasterIO进行的读取操作。
+ *
  * 迭代器的值类型为cv::Mat const。
- * 
+ *
  * 在实例化时，如果指定了当前的样本/行/波段号（均从0开始计数），那么当前数据会在构造函数中预读取。如果不指定，那么该实例为末端迭代器，仅用于表示数据集的末尾。
- * 
+ *
  * 本迭代器类通过指定类型，特化为SampleInputIterator、LineInputIterator和BandInputIterator。
  */
 template <typename T, unsigned N>
@@ -54,7 +55,7 @@ class InputIterator_
   using reference = cv::Mat const&;
   /**
    * @brief 仅用于构造末端迭代器，用于表示数据集的末尾
-   * 
+   *
    * @param dataset 数据集指针
    */
   explicit InputIterator_(GDALDataset* dataset) : dataset_{dataset} {
@@ -78,9 +79,9 @@ class InputIterator_
 
   /**
    * @brief 用于构造输入迭代器
-   * 
+   *
    * @note 构造时，会预读取cur指向的数据
-   * 
+   *
    * @param dataset 数据集指针
    * @param cur 迭代开始位置，从0开始计数
    */
@@ -166,12 +167,7 @@ class InputIterator_
  * @brief 样本输入迭代器，逐个样本读取GDALDataset中的影像数据
  *
  * @tparam T 读取影像的数据类型
- * @par 例
- * \code{.cpp}
-hsp::SampleInputIterator<float> beg(src_dataset.get(), 0), end(src_dataset.get());
-hsp::SampleOutputIterator<float> obeg(dst_dataset.get(), 0);
-std::copy(beg, end, obeg);
- * \endcode
+ * @details 见LineInputIterator。
  *
  */
 template <typename T>
@@ -181,6 +177,15 @@ using SampleInputIterator = InputIterator_<T, 1>;
  * @brief 行输入迭代器，逐行读取GDALDataset中的影像数据
  *
  * @tparam T 读取影像的数据类型
+ * @details
+ * 支持的操作包括
+ * \code{.cpp}
+ * hsp::LineInputIterator<float> it(src_dataset, 0), end(src_dataset);
+ * cv::Mat val = *it;
+ * ++it;
+ * it++;
+ * it != end;
+ * \endcode
  */
 template <typename T>
 using LineInputIterator = InputIterator_<T, 2>;
@@ -189,16 +194,16 @@ using LineInputIterator = InputIterator_<T, 2>;
  * @brief 波段输入迭代器，逐波段读取GDALDataset中的影像数据
  *
  * @tparam T 读取影像的数据类型
+ * @details 见LineInputIterator。
  */
 template <typename T>
 using BandInputIterator = InputIterator_<T, 3>;
 
-
 /**
  * @brief 输出迭代器
- * 
- * @tparam T 
- * @tparam N 
+ *
+ * @tparam T
+ * @tparam N
  */
 template <typename T, unsigned N>
 class OutputIterator_
