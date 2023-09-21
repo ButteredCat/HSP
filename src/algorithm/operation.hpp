@@ -1,4 +1,13 @@
-// Copyright (C) 2023 Xiao Yunchen
+/**
+ * @file operation.hpp
+ * @author xiaoyc
+ * @brief 定义基于functor的基本图像处理操作
+ * @version 0.1
+ * @date 2023-09-21
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
 #ifndef SRC_ALGORITHM_OPERATION_HPP_
 #define SRC_ALGORITHM_OPERATION_HPP_
 
@@ -10,6 +19,15 @@
 #include <opencv2/core.hpp>
 
 namespace hsp {
+
+/**
+ * @brief 一元图像操作
+ * 
+ * @details 用于仅
+ * @param[in] cv::Mat 输入图像矩阵
+ * @return cv::Mat 处理后的图像矩阵
+ *
+ */
 class UnaryOperation {
  public:
   virtual cv::Mat operator()(cv::Mat) = 0;
@@ -17,15 +35,36 @@ class UnaryOperation {
 
 using unary_op = std::shared_ptr<UnaryOperation>;
 
+/**
+ * @brief 构造一元图像操作指针
+ * 
+ * @tparam T 图像像元的数据类型
+ */
 template <typename T>
 const auto make_op = std::make_shared<T>;
 
+/**
+ * @brief 一元操作组合器
+ * 
+ */
 class UnaryOpCombo : public UnaryOperation {
  public:
+ /**
+  * @brief 在组合器中添加操作
+  * 
+  * @param op 一元图像操作指针
+  * @return UnaryOpCombo& 
+  */
   UnaryOpCombo& add(unary_op op) {
     ops_.emplace_back(op);
     return *this;
   }
+  /**
+   * @brief 按照添加顺序，运行组合器中添加的算法
+   * 
+   * @param m 
+   * @return cv::Mat 
+   */
   cv::Mat operator()(cv::Mat m) override {
     cv::Mat res = m;
     for (auto&& each : ops_) {

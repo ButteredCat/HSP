@@ -1,4 +1,13 @@
-// Copyright (C) 2023 Xiao Yunchen
+/**
+ * @file radiometric.hpp
+ * @author xiaoyc
+ * @brief 辐射校正相关算法
+ * @version 0.1
+ * @date 2023-09-21
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
 #ifndef SRC_ALGORITHM_RADIOMETRIC_HPP_
 #define SRC_ALGORITHM_RADIOMETRIC_HPP_
 
@@ -18,40 +27,14 @@
 
 namespace hsp {
 
-// template <typename T>
-// bool load(const char* filepath, size_t count, T* data) {
-//   if (IsRasterDataset(filepath)) {
-//     GDALDataset* dataset =
-//         reinterpret_cast<GDALDataset*>(GDALOpen(filepath, GA_ReadOnly));
-//     if (static_cast<size_t>(dataset->GetRasterXSize()) *
-//             dataset->GetRasterYSize() <
-//         count) {
-//       GDALClose(dataset);
-//       return false;
-//     }
-//     int cols = dataset->GetRasterXSize();
-//     int rows = count / cols;
-//     if (dataset->RasterIO(GF_Read, 0, 0, cols, rows, data, cols, rows,
-//                           gdal::DataType<T>::type(), 1, nullptr, 0, 0, 0)) {
-//     }
-//     GDALClose(dataset);
-//     return true;
-//   }
-//   FILE* fp = fopen(filepath, "r");
-//   if (fp == nullptr) {
-//     return false;
-//   }
-//   size_t i;
-//   for (i = 0; i < count; ++i) {
-//     double t;
-//     if (fscanf(fp, "%lf%*c", &t) != 1) break;
-//     data[i] = (T)t;
-//   }
-
-//   fclose(fp);
-//   return i == count;
-// }
-
+/**
+ * @brief 载入栅格系数
+ *
+ * @note 对于多波段的数据，仅载入第1波段
+ * @tparam T 像元数据类型
+ * @param filename 系数完整路径
+ * @return cv::Mat 读取到的系数
+ */
 template <typename T>
 cv::Mat load_raster(const std::string& filename) {
   auto dataset = GDALDatasetUniquePtr(
@@ -69,6 +52,13 @@ cv::Mat load_raster(const std::string& filename) {
   return res;
 }
 
+/**
+ * @brief 载入文本格式的系数
+ *
+ * @tparam T 像元数据类型
+ * @param filename 系数完整路径
+ * @return cv::Mat 读取到的系数
+ */
 template <typename T>
 cv::Mat load_text(const std::string& filename) {
   std::ifstream in(filename);
@@ -88,11 +78,23 @@ cv::Mat load_text(const std::string& filename) {
       .clone();
 }
 
+/**
+ * @brief 暗电平扣除算法
+ *
+ * @tparam T 载入系数的像元数据类型
+ * 
+ * @note 配合行迭代器使用
+ */
 template <typename T>
 class DarkBackgroundCorrection : public UnaryOperation {
  public:
   cv::Mat operator()(cv::Mat m) override { return m - m_; }
 
+  /**
+   * @brief 载入暗电平系数文件
+   *
+   * @param filename 系数文件路径，支持栅格数据和文本文件
+   */
   void load(const std::string& filename) {
     if (IsRasterDataset(filename.c_str())) {
       m_ = load_raster<T>(filename.c_str());
@@ -105,6 +107,14 @@ class DarkBackgroundCorrection : public UnaryOperation {
   cv::Mat m_;
 };
 
+/**
+ * @brief 非均匀校正算法
+ * 
+ * @tparam T_out 算法输出的像元数据类型
+ * @tparam T_coeff 载入系数的像元数据类型
+ * 
+ * @note 配合行迭代器使用
+ */
 template <typename T_out, typename T_coeff = float>
 class NonUniformityCorrection : public UnaryOperation {
  public:
@@ -115,6 +125,12 @@ class NonUniformityCorrection : public UnaryOperation {
     m.convertTo(res, cv::DataType<T_out>::type);
     return res;
   }
+  /**
+   * @brief 载入非均匀系数
+   * 
+   * @param coeff_a 系数a路径
+   * @param coeff_b 系数b路径
+   */
   void load(const std::string& coeff_a, const std::string& coeff_b) {
     if (IsRasterDataset(coeff_a.c_str())) {
       a_ = load_raster<T_coeff>(coeff_a.c_str());
@@ -133,6 +149,14 @@ class NonUniformityCorrection : public UnaryOperation {
   cv::Mat b_;
 };
 
+/**
+ * @brief 绝对辐射校正算法
+ * 
+ * @tparam T_out 
+ * @tparam T_coeff 
+ * 
+ * @note 配合行迭代器使用
+ */
 template <typename T_out = float, typename T_coeff = float>
 class AbsoluteRadiometricCorrection : public UnaryOperation {
  public:
@@ -150,6 +174,10 @@ class AbsoluteRadiometricCorrection : public UnaryOperation {
   cv::Mat b_;
 };
 
+/**
+ * @brief 高斯滤波算法
+ * 
+ */
 class GaussianFilter : public UnaryOperation {
  public:
   cv::Mat operator()(cv::Mat m) override {

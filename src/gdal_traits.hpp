@@ -1,4 +1,13 @@
-// Copyright (C) 2023 Xiao Yunchen
+/**
+ * @file gdal_traits.hpp
+ * @author xiaoyc
+ * @brief 提供了一系列在编译期将C++数据类型转化为GDAL所定义的数据类型值的模板
+ * @version 0.1
+ * @date 2023-09-21
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
 #ifndef SRC_GDAL_TRAITS_HPP_
 #define SRC_GDAL_TRAITS_HPP_
 
@@ -97,4 +106,5 @@ class DataType<std::complex<double> > {
 
 }  // namespace gdal
 }  // namespace hsp
+
 #endif  // SRC_GDAL_TRAITS_HPP_

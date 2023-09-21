@@ -32,7 +32,7 @@ namespace hsp {
 /**
  * @brief 输入迭代器，用于特化为其他迭代器
  *
- * @tparam T 读取影像的数据类型
+ * @tparam T 读取影像像元的数据类型
  * @tparam N 特化迭代器类型，1为样本迭代器，2为波段迭代器，3为波段迭代器
  *
  *
@@ -176,7 +176,7 @@ using SampleInputIterator = InputIterator_<T, 1>;
 /**
  * @brief 行输入迭代器，逐行读取GDALDataset中的影像数据
  *
- * @tparam T 读取影像的数据类型
+ * @tparam T 读取影像像元的数据类型
  * @details
  * 支持的操作包括
  * \code{.cpp}
@@ -200,25 +200,54 @@ template <typename T>
 using BandInputIterator = InputIterator_<T, 3>;
 
 /**
- * @brief 输出迭代器
+ * @brief 输出迭代器，用于特化为其他迭代器
  *
- * @tparam T
- * @tparam N
+ * @tparam T 输出影像类型
+ * @tparam N 特化迭代器类型，1为样本迭代器，2为波段迭代器，3为波段迭代器
+ *
+ *
+ * @details
+ * 输出迭代器OutputIterator_基于std::iterator，封装了对GDALDataset所拥有的高光谱数据立方资源通过RasterIO进行的写入操作。
+ *
+ * 迭代器的值类型为cv::Mat。
+ *
+ * 在实例化时，如果指定了当前的样本/行/波段号（均从0开始计数），那么实例化为普通的迭代器。如果不指定，那么该实例为末端迭代器，仅用于表示数据集的末尾。
+ *
+ * 本迭代器类通过指定类型，特化为SampleOutputIterator、LineOutputIterator和BandOutputIterator。
  */
 template <typename T, unsigned N>
 class OutputIterator_
     : public std::iterator<std::output_iterator_tag, void, void, void, void> {
  public:
+  /**
+   * @brief 初始化为末端迭代器
+   *
+   * @param dataset 数据集指针
+   */
   explicit OutputIterator_(GDALDataset* dataset) : dataset_{dataset} {
     init_();
     const int cur_table[] = {n_samples_, n_lines_, n_lines_};
     cur_ = cur_table[N - 1];
   }
+  /**
+   * @brief 初始化为普通输出迭代器
+   *
+   * @param dataset 数据集指针
+   * @param cur 当前位置，从0开始计数
+   */
   OutputIterator_(GDALDataset* dataset, int cur)
       : dataset_{dataset}, cur_{cur} {
     init_();
   }
 
+  /**
+   * @brief 重载赋值符号
+   *
+   * @param value
+   * @return OutputIterator_& 返回*this
+   *
+   * @note 数据写入操作在此处进行
+   */
   OutputIterator_& operator=(const cv::Mat& value) {
     CPLErr err;
     switch (N) {
@@ -239,21 +268,51 @@ class OutputIterator_
     }
     return *this;
   }
+
+  /**
+   * @brief 前缀自增
+   *
+   * @return OutputIterator_&
+   */
   OutputIterator_& operator++() {
     ++cur_;
     return *this;
   }
+  /**
+   * @brief 后缀自增
+   *
+   * @return OutputIterator_
+   */
   OutputIterator_ operator++(int) {
     OutputIterator_<T, N> old(*this);
     ++(*this);
     return old;
   }
+  /**
+   * @brief 迭代器比较
+   *
+   * @param other
+   * @return true
+   * @return false
+   */
   bool operator==(const OutputIterator_& other) const {
     return cur_ == other.cur_;
   }
+  /**
+   * @brief 迭代器比较
+   *
+   * @param other
+   * @return true
+   * @return false
+   */
   bool operator!=(const OutputIterator_& other) const {
     return !(*this == other);
   }
+  /**
+   * @brief 迭代器解引用
+   *
+   * @return OutputIterator_& 返回*this
+   */
   OutputIterator_& operator*() { return *this; }
 
  private:
@@ -285,12 +344,27 @@ class OutputIterator_
   }
 };
 
+/**
+ * @brief 样本输出迭代器，用于逐样本向GDALDataset输出（写入）影像
+ *
+ * @tparam T 写入影像的像元数据类型
+ */
 template <typename T>
 using SampleOutputIterator = OutputIterator_<T, 1>;
 
+/**
+ * @brief 行输出迭代器，用于逐行向GDALDataset输出（写入）影像
+ *
+ * @tparam T 写入影像的像元数据类型
+ */
 template <typename T>
 using LineOutputIterator = OutputIterator_<T, 2>;
 
+/**
+ * @brief 波段输出迭代器，用于逐波段向GDALDataset输出（写入）影像
+ *
+ * @tparam T 写入影像的像元数据类型
+ */
 template <typename T>
 using BandOutputIterator = OutputIterator_<T, 3>;
 
