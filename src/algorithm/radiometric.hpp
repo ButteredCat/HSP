@@ -96,7 +96,7 @@ class DarkBackgroundCorrection : public UnaryOperation {
    * @param filename 系数文件路径，支持栅格数据和文本文件
    */
   void load(const std::string& filename) {
-    if (IsRasterDataset(filename.c_str())) {
+    if (gdal::IsRasterDataset(filename.c_str())) {
       m_ = load_raster<T>(filename.c_str());
     } else {
       m_ = load_text<T>(filename.c_str());
@@ -132,12 +132,12 @@ class NonUniformityCorrection : public UnaryOperation {
    * @param coeff_b 系数b路径
    */
   void load(const std::string& coeff_a, const std::string& coeff_b) {
-    if (IsRasterDataset(coeff_a.c_str())) {
+    if (gdal::IsRasterDataset(coeff_a.c_str())) {
       a_ = load_raster<T_coeff>(coeff_a.c_str());
     } else {
       a_ = load_raster<T_coeff>(coeff_a.c_str());
     }
-    if (IsRasterDataset(coeff_b.c_str())) {
+    if (gdal::IsRasterDataset(coeff_b.c_str())) {
       b_ = load_raster<T_coeff>(coeff_b.c_str());
     } else {
       b_ = load_raster<T_coeff>(coeff_b.c_str());

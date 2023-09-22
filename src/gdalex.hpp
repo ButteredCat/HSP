@@ -12,6 +12,8 @@
 #include <string>
 #include <utility>
 
+namespace hsp {
+namespace gdal {
 
 inline char* strlwr(char* str) {
   char* orig = str;
@@ -39,33 +41,6 @@ inline const char* GetGDALDescription(const char* ext,
                  [](unsigned char c) { return std::tolower(c); });
   return dictionary.at(extension).c_str();
 }
-
-// inline const char* GetGDALDescription(const char* lpstrExt,
-//                                       const char* default_ret) {
-//   static const char* strExt[] = {"tif", "tiff", "bmp", "jpg",  "png",
-//                                  "img", "bt",   "ecw", "fits", "gif",
-//                                  "hdf", "hdr",  "pix", "dat"};
-//   static const char* strDescrip[] = {"GTiff", "GTiff", "BMP",    "JPEG",
-//   "PNG",
-//                                      "HFA",   "BT",    "ECW",    "FITS",
-//                                      "GIF", "HDF4",  "EHdr",  "PCIDSK",
-//                                      "ENVI"};
-
-//   char suffix[10];
-//   if (*lpstrExt == '.') {
-//     strcpy(suffix, lpstrExt + 1);
-//   } else {
-//     strcpy(suffix, lpstrExt);
-//   }
-//   strlwr(suffix);
-
-//   for (unsigned long i = 0; i < sizeof(strExt) / sizeof(const char*); i++) {
-//     if (!strcmp(strExt[i], suffix)) {
-//       return strDescrip[i];
-//     }
-//   }
-//   return default_ret;
-// }
 
 inline bool IsRasterDataset(const char* filepath) {
   FILE* fp = fopen(filepath, "r");
@@ -121,5 +96,8 @@ inline GDALDataset* GDALCreate(const char* filepath, int cols, int rows,
   dataset = poDriver->Create(filepath, cols, rows, bands, type, nullptr);
   return dataset;
 }
+
+}  // namespace gdal
+}  // namespace hsp
 
 #endif  // SRC_GDALEX_HPP_

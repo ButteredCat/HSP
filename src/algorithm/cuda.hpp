@@ -47,7 +47,7 @@ class DarkBackgroundCorrection : public hsp::UnaryOperation {
   }
   void load(const std::string& filename) {
     cv::Mat coeff;
-    if (IsRasterDataset(filename.c_str())) {
+    if (hsp::gdal::IsRasterDataset(filename.c_str())) {
       coeff = hsp::load_raster<T>(filename.c_str());
     } else {
       coeff = hsp::load_text<T>(filename.c_str());
@@ -81,12 +81,12 @@ class NonUniformityCorrection : public UnaryOperation {
   }
   void load(const std::string& coeff_a, const std::string& coeff_b) {
     cv::Mat a, b;
-    if (IsRasterDataset(coeff_a.c_str())) {
+    if (hsp::gdal::IsRasterDataset(coeff_a.c_str())) {
       a = load_raster<T_coeff>(coeff_a.c_str());
     } else {
       a = load_raster<T_coeff>(coeff_a.c_str());
     }
-    if (IsRasterDataset(coeff_b.c_str())) {
+    if (hsp::gdal::IsRasterDataset(coeff_b.c_str())) {
       b = load_raster<T_coeff>(coeff_b.c_str());
     } else {
       b = load_raster<T_coeff>(coeff_b.c_str());
@@ -139,12 +139,12 @@ class UnifiedOps : public UnaryOperation {
   }
   void load(const std::string& coeff_a, const std::string& coeff_b) {
     cv::Mat a, b;
-    if (IsRasterDataset(coeff_a.c_str())) {
+    if (hsp::gdal::IsRasterDataset(coeff_a.c_str())) {
       a = load_raster<T_coeff>(coeff_a.c_str());
     } else {
       a = load_raster<T_coeff>(coeff_a.c_str());
     }
-    if (IsRasterDataset(coeff_b.c_str())) {
+    if (hsp::gdal::IsRasterDataset(coeff_b.c_str())) {
       b = load_raster<T_coeff>(coeff_b.c_str());
     } else {
       b = load_raster<T_coeff>(coeff_b.c_str());
