@@ -10,11 +10,9 @@
 #include <string>
 #include <vector>
 
-// #include "../src/iterator/BandIterator.hpp"
-// #include "../src/iterator/LineIterator.hpp"
-#include "../src/algorithm/cuda.hpp"
-#include "../src/algorithm/radiometric.hpp"
-#include "../src/iterator.hpp"
+#include "../hsp/algorithm/cuda.hpp"
+#include "../hsp/algorithm/radiometric.hpp"
+#include "../hsp/core.hpp"
 
 int main(void) {
   using namespace std::chrono;

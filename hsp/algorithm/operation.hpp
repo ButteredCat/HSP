@@ -8,8 +8,8 @@
  * @copyright Copyright (c) 2023
  *
  */
-#ifndef SRC_ALGORITHM_OPERATION_HPP_
-#define SRC_ALGORITHM_OPERATION_HPP_
+#ifndef HSP_ALGORITHM_OPERATION_HPP_
+#define HSP_ALGORITHM_OPERATION_HPP_
 
 // C++ Standard
 #include <memory>
@@ -23,7 +23,6 @@ namespace hsp {
 /**
  * @brief 一元图像操作
  * 
- * @details 用于仅
  * @param[in] cv::Mat 输入图像矩阵
  * @return cv::Mat 处理后的图像矩阵
  *
@@ -79,4 +78,4 @@ class UnaryOpCombo : public UnaryOperation {
 
 }  // namespace hsp
 
-#endif  // SRC_ALGORITHM_OPERATION_HPP_
+#endif  // HSP_ALGORITHM_OPERATION_HPP_

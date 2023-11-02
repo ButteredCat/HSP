@@ -8,8 +8,8 @@
  * @copyright Copyright (c) 2023
  *
  */
-#ifndef SRC_GDAL_TRAITS_HPP_
-#define SRC_GDAL_TRAITS_HPP_
+#ifndef HSP_GDAL_TRAITS_HPP_
+#define HSP_GDAL_TRAITS_HPP_
 
 // GDAL
 #include <gdal.h>
@@ -107,4 +107,4 @@ class DataType<std::complex<double> > {
 }  // namespace gdal
 }  // namespace hsp
 
-#endif  // SRC_GDAL_TRAITS_HPP_
+#endif  // HSP_GDAL_TRAITS_HPP_

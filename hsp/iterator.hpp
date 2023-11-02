@@ -8,8 +8,8 @@
  * @copyright Copyright (c) 2023
  *
  */
-#ifndef SRC_ITERATOR_HPP_
-#define SRC_ITERATOR_HPP_
+#ifndef HSP_ITERATOR_HPP_
+#define HSP_ITERATOR_HPP_
 
 // GDAL
 #include <gdal.h>
@@ -370,4 +370,4 @@ using BandOutputIterator = OutputIterator_<T, 3>;
 
 }  // namespace hsp
 
-#endif  // SRC_ITERATOR_HPP_
+#endif  // HSP_ITERATOR_HPP_

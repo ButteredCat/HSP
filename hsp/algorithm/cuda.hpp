@@ -8,8 +8,8 @@
  * @copyright Copyright (c) 2023
  *
  */
-#ifndef SRC_ALGORITHM_CUDA_HPP_
-#define SRC_ALGORITHM_CUDA_HPP_
+#ifndef HSP_ALGORITHM_CUDA_HPP_
+#define HSP_ALGORITHM_CUDA_HPP_
 
 // C++ Standard
 #include <string>
@@ -22,8 +22,8 @@
 
 // project
 #include "../gdalex.hpp"
+#include "../utils.hpp"
 #include "./operation.hpp"
-#include "./radiometric.hpp"
 
 namespace hsp {
 
@@ -162,4 +162,4 @@ class UnifiedOps : public UnaryOperation {
 
 }  // namespace hsp
 
-#endif  // SRC_ALGORITHM_CUDA_HPP_
+#endif  // HSP_ALGORITHM_CUDA_HPP_

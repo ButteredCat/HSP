@@ -10,9 +10,9 @@
 #include <boost/filesystem.hpp>
 
 // project
-#include "../src/algorithm/cuda.hpp"
-#include "../src/algorithm/radiometric.hpp"
-#include "../src/iterator.hpp"
+#include "../hsp/algorithm/cuda.hpp"
+#include "../hsp/algorithm/radiometric.hpp"
+#include "../hsp/iterator.hpp"
 
 extern bool filecmp(const std::string&, const std::string&);
 

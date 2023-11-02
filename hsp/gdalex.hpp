@@ -8,8 +8,8 @@
  * @copyright Copyright (c) 2023
  *
  */
-#ifndef SRC_GDALEX_HPP_
-#define SRC_GDALEX_HPP_
+#ifndef HSP_GDALEX_HPP_
+#define HSP_GDALEX_HPP_
 
 // GDAL
 #include <gdal_priv.h>
@@ -140,4 +140,4 @@ inline GDALDataset* GDALCreate(const char* filepath, int cols, int rows,
 }  // namespace gdal
 }  // namespace hsp
 
-#endif  // SRC_GDALEX_HPP_
+#endif  // HSP_GDALEX_HPP_
