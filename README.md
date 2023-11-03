@@ -1,6 +1,13 @@
 # HSP
 通用高性能高光谱数据处理框架。
 
+## 使用方法
+HSP是一个 Header-only 的库，只需要将`hsp/hsp`目录复制到新项目的`include`目录下，并在源代码中包含相应的头文件，就可以使用了。如
+```cpp
+#include "hsp/algorithm/radiometric.hpp"
+#include "hsp/core.hpp"
+```
+
 ## 环境需求
 ### 基础编译
 - C++ 14
@@ -15,7 +22,7 @@
 ### 集成测试框架 
 [GoogleTest](https://github.com/google/googletest)
 
-## 测试
+## 库代码测试
 静态代码检查:
 ```shell
 cpplint --recursive --quiet src test app
