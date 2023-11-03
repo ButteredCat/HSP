@@ -1,7 +1,7 @@
 /**
  * @file gdal_traits.hpp
  * @author xiaoyc
- * @brief 提供了一系列在编译期将C++数据类型转化为GDAL所定义的数据类型值的模板
+ * @brief 提供了一系列在编译期将C++数据类型转化为GDAL所定义的数据类型值的模板。
  * @version 0.1
  * @date 2023-09-21
  *

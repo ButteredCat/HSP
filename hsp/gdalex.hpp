@@ -1,7 +1,7 @@
 /**
  * @file gdalex.hpp
  * @author xiaoyc
- * @brief GDAL扩展
+ * @brief GDAL扩展。
  * @version 0.1
  * @date 2023-09-22
  *

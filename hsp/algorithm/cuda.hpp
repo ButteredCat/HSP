@@ -1,7 +1,7 @@
 /**
  * @file cuda.hpp
  * @author xiaoyc
- * @brief 使用GPU加速的算法，需要NVIDIA CUDA和cv::cuda支持
+ * @brief 使用GPU加速的算法，需要用到NVIDIA CUDA和OpenCV中的CUDA模块。
  * @version 0.1
  * @date 2023-09-21
  *
@@ -30,7 +30,7 @@ namespace hsp {
 namespace cuda {
 
 /**
- * @brief 基于CUDA的暗电平扣除算法
+ * @brief 基于CUDA的暗电平扣除算法。
  *
  * @tparam T 载入系数的像元数据类型
  */
@@ -60,7 +60,7 @@ class DarkBackgroundCorrection : public hsp::UnaryOperation {
 };
 
 /**
- * @brief 基于CUDA的非均匀校正算法
+ * @brief 基于CUDA的非均匀校正算法。
  *
  * @tparam T_out 算法输出的像元数据类型
  * @tparam T_coeff 载入系数的像元数据类型
@@ -101,11 +101,11 @@ class NonUniformityCorrection : public UnaryOperation {
 };
 
 /**
- * @brief 基于CUDA的高斯滤波算法
+ * @brief 基于CUDA的高斯滤波算法。
  *
  * @tparam T 算法输出的像元数据类型
  *
- * @note 不支持双精度数据类型
+ * @note 不支持双精度数据类型。
  */
 template <typename T>
 class GaussianFilter : public hsp::UnaryOperation {

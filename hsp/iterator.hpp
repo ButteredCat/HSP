@@ -1,7 +1,7 @@
 /**
  * @file iterator.hpp
  * @author xiaoyc
- * @brief 实现了对GDALDataset按照样本、行、波段进行迭代的输入输出迭代器
+ * @brief 实现了对GDALDataset按照样本、行、波段进行迭代的输入输出迭代器。
  * @version 0.1
  * @date 2023-09-21
  *
@@ -30,7 +30,7 @@
 namespace hsp {
 
 /**
- * @brief 输入迭代器，用于特化为其他迭代器
+ * @brief 输入迭代器，用于特化为其他迭代器。
  *
  * @tparam T 读取影像像元的数据类型
  * @tparam N 特化迭代器类型，1为样本迭代器，2为波段迭代器，3为波段迭代器
@@ -78,9 +78,9 @@ class InputIterator_
   }
 
   /**
-   * @brief 用于构造输入迭代器
+   * @brief 用于构造输入迭代器。
    *
-   * @note 构造时，会预读取cur指向的数据
+   * @note 构造时，会预读取cur指向的数据。
    *
    * @param dataset 数据集指针
    * @param cur 迭代开始位置，从0开始计数
@@ -164,7 +164,7 @@ class InputIterator_
 };
 
 /**
- * @brief 样本输入迭代器，逐个样本读取GDALDataset中的影像数据
+ * @brief 样本输入迭代器，逐个样本读取GDALDataset中的影像数据。
  *
  * @tparam T 读取影像的数据类型
  * @details 见LineInputIterator。
@@ -174,7 +174,7 @@ template <typename T>
 using SampleInputIterator = InputIterator_<T, 1>;
 
 /**
- * @brief 行输入迭代器，逐行读取GDALDataset中的影像数据
+ * @brief 行输入迭代器，逐行读取GDALDataset中的影像数据。
  *
  * @tparam T 读取影像像元的数据类型
  * @details
@@ -191,7 +191,7 @@ template <typename T>
 using LineInputIterator = InputIterator_<T, 2>;
 
 /**
- * @brief 波段输入迭代器，逐波段读取GDALDataset中的影像数据
+ * @brief 波段输入迭代器，逐波段读取GDALDataset中的影像数据。
  *
  * @tparam T 读取影像的数据类型
  * @details 见LineInputIterator。
@@ -200,7 +200,7 @@ template <typename T>
 using BandInputIterator = InputIterator_<T, 3>;
 
 /**
- * @brief 输出迭代器，用于特化为其他迭代器
+ * @brief 输出迭代器，用于特化为其他迭代器。
  *
  * @tparam T 输出影像类型
  * @tparam N 特化迭代器类型，1为样本迭代器，2为波段迭代器，3为波段迭代器
@@ -220,7 +220,7 @@ class OutputIterator_
     : public std::iterator<std::output_iterator_tag, void, void, void, void> {
  public:
   /**
-   * @brief 初始化为末端迭代器
+   * @brief 初始化为末端迭代器。
    *
    * @param dataset 数据集指针
    */
@@ -230,7 +230,7 @@ class OutputIterator_
     cur_ = cur_table[N - 1];
   }
   /**
-   * @brief 初始化为普通输出迭代器
+   * @brief 初始化为普通输出迭代器。
    *
    * @param dataset 数据集指针
    * @param cur 当前位置，从0开始计数
@@ -241,12 +241,12 @@ class OutputIterator_
   }
 
   /**
-   * @brief 重载赋值符号
+   * @brief 重载赋值符号。
    *
    * @param value
    * @return OutputIterator_& 返回*this
    *
-   * @note 数据写入操作在此处进行
+   * @note 数据写入操作在此处进行。
    */
   OutputIterator_& operator=(const cv::Mat& value) {
     CPLErr err;
@@ -270,7 +270,7 @@ class OutputIterator_
   }
 
   /**
-   * @brief 前缀自增
+   * @brief 前缀自增。
    *
    * @return OutputIterator_&
    */
@@ -279,7 +279,7 @@ class OutputIterator_
     return *this;
   }
   /**
-   * @brief 后缀自增
+   * @brief 后缀自增。
    *
    * @return OutputIterator_
    */
@@ -289,7 +289,7 @@ class OutputIterator_
     return old;
   }
   /**
-   * @brief 迭代器比较
+   * @brief 迭代器比较。
    *
    * @param other
    * @return true
@@ -299,7 +299,7 @@ class OutputIterator_
     return cur_ == other.cur_;
   }
   /**
-   * @brief 迭代器比较
+   * @brief 迭代器比较。
    *
    * @param other
    * @return true
@@ -309,7 +309,7 @@ class OutputIterator_
     return !(*this == other);
   }
   /**
-   * @brief 迭代器解引用
+   * @brief 迭代器解引用。
    *
    * @return OutputIterator_& 返回*this
    */
@@ -345,7 +345,7 @@ class OutputIterator_
 };
 
 /**
- * @brief 样本输出迭代器，用于逐样本向GDALDataset输出（写入）影像
+ * @brief 样本输出迭代器，用于逐样本向GDALDataset输出（写入）影像。
  *
  * @tparam T 写入影像的像元数据类型
  */
@@ -353,7 +353,7 @@ template <typename T>
 using SampleOutputIterator = OutputIterator_<T, 1>;
 
 /**
- * @brief 行输出迭代器，用于逐行向GDALDataset输出（写入）影像
+ * @brief 行输出迭代器，用于逐行向GDALDataset输出（写入）影像。
  *
  * @tparam T 写入影像的像元数据类型
  */
@@ -361,7 +361,7 @@ template <typename T>
 using LineOutputIterator = OutputIterator_<T, 2>;
 
 /**
- * @brief 波段输出迭代器，用于逐波段向GDALDataset输出（写入）影像
+ * @brief 波段输出迭代器，用于逐波段向GDALDataset输出（写入）影像。
  *
  * @tparam T 写入影像的像元数据类型
  */

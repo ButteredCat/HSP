@@ -1,7 +1,7 @@
 /**
  * @file radiometric.hpp
  * @author xiaoyc
- * @brief 辐射校正相关算法
+ * @brief 辐射校正相关算法。
  * @version 0.1
  * @date 2023-09-21
  *
@@ -30,11 +30,11 @@
 namespace hsp {
 
 /**
- * @brief 暗电平扣除算法
+ * @brief 暗电平扣除算法。
  *
  * @tparam T 载入系数的像元数据类型
  *
- * @note 配合行迭代器使用
+ * @note 配合行迭代器使用。
  */
 template <typename T>
 class DarkBackgroundCorrection : public UnaryOperation {
@@ -42,7 +42,7 @@ class DarkBackgroundCorrection : public UnaryOperation {
   cv::Mat operator()(cv::Mat m) const override { return m - m_; }
 
   /**
-   * @brief 载入暗电平系数文件
+   * @brief 载入暗电平系数文件。
    *
    * @param filename 系数文件路径，支持栅格数据和文本文件
    */
@@ -59,7 +59,7 @@ class DarkBackgroundCorrection : public UnaryOperation {
 };
 
 /**
- * @brief 非均匀校正算法
+ * @brief 非均匀校正算法。
  *
  * @tparam T_out 算法输出的像元数据类型
  * @tparam T_coeff 载入系数的像元数据类型
@@ -77,7 +77,7 @@ class NonUniformityCorrection : public UnaryOperation {
     return res;
   }
   /**
-   * @brief 载入非均匀系数
+   * @brief 载入非均匀系数。
    *
    * @param coeff_a 系数a路径
    * @param coeff_b 系数b路径
@@ -101,7 +101,7 @@ class NonUniformityCorrection : public UnaryOperation {
 };
 
 /**
- * @brief 绝对辐射校正算法
+ * @brief 绝对辐射校正算法。
  *
  * @tparam T_out
  * @tparam T_coeff
@@ -126,7 +126,7 @@ class AbsoluteRadiometricCorrection : public UnaryOperation {
 };
 
 /**
- * @brief 高斯滤波算法
+ * @brief 高斯滤波算法。
  *
  */
 class GaussianFilter : public UnaryOperation {
@@ -139,11 +139,33 @@ class GaussianFilter : public UnaryOperation {
 };
 
 /**
- * @brief 空间维盲元修复算法
- * @note 配合波段迭代器使用，需要同时给出波段号
+ * @brief 空间维盲元修复算法。
+ *
+ * @details
+ * 内部调用OpenCV中的`inpaint`函数实现，使用`cv::INPAINT_TELEA`算法。
+ * 使用示例如下：
+ * \code{.cpp}
+ *  hsp::SpatialDefectPixelCorrection dpc;
+ *  dpc.load(badpixel);
+ * 
+ *  hsp::BandInputIterator<uint16_t> band_it(src_dataset.get(), 0),
+ *     band_it_end(src_dataset.get());
+ *  hsp::BandOutputIterator<uint16_t> band_out_it(dst_dataset.get(), 0);
+ * 
+ *  // 用 boost::counting_iterator 生成连续的波段号 
+ *  std::transform(band_it, band_it_end, boost::counting_iterator<int>(0),
+ *                 band_out_it, dpc);
+ * \endcode
+ *
+ * @note
+ * 配合波段迭代器使用，需要同时给出波段号。由于是二元操作，所以不能放入hsp::UnaryOpCombo。
  */
 class SpatialDefectPixelCorrection {
  public:
+  /**
+   * @brief `cv::inpaint`算法中的邻域半径。
+   *
+   */
   double radius{3.0};
 
  public:
@@ -164,11 +186,16 @@ class SpatialDefectPixelCorrection {
 };
 
 /**
- * @brief 光谱维盲元修复算法
- * @note 配合行迭代器使用
+ * @brief 光谱维盲元修复算法。
+ *
+ * @note 配合行迭代器使用。
  */
 class SpectralDefectPixelCorrection : public UnaryOperation {
  public:
+  /**
+   * @brief `cv::inpaint`算法中的邻域半径。
+   *
+   */
   double radius{3.0};
 
  public:

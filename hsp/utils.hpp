@@ -1,7 +1,7 @@
 /**
  * @file utils.hpp
  * @author xiaoyc
- * @brief 通用工具
+ * @brief 通用工具。
  * @version 0.1
  * @date 2023-11-02
  *
@@ -27,9 +27,9 @@
 
 namespace hsp {
 /**
- * @brief 载入栅格系数
+ * @brief 载入栅格系数。
  *
- * @note 对于多波段的数据，仅载入第1波段
+ * @note 对于多波段的数据，仅载入第1波段。
  * @tparam T 像元数据类型
  * @param filename 系数完整路径
  * @return cv::Mat 读取到的系数
@@ -52,7 +52,7 @@ cv::Mat load_raster(const std::string& filename) {
 }
 
 /**
- * @brief 载入文本格式的系数
+ * @brief 载入文本格式的系数。
  *
  * @tparam T 像元数据类型
  * @param filename 系数完整路径

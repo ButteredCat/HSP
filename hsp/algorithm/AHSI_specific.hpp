@@ -1,7 +1,7 @@
 /**
  * @file AHSI_specific.hpp
  * @author xiaoyc
- * @brief 专用于AHSI的算法
+ * @brief 专用于AHSI的算法。
  * @version 0.1
  * @date 2023-11-02
  *
@@ -19,8 +19,11 @@
 
 namespace hsp {
 /**
- * @brief 高五01A专用暗电平扣除算法
+ * @brief 高五01A专用暗电平扣除算法。
+ *
  * @details
+ * 按照以下公式扣除暗电平：DN' = DN - (a * idx + b)。
+ * 其中，DN和DN'分别为原始和校正后的DN值，a和b为暗电平系数，idx为帧序列号。
  *
  */
 class GF501A_DBC {

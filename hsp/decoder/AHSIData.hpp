@@ -1,7 +1,7 @@
 /**
  * @file AHSIData.hpp
  * @author xiaoyc
- * @brief 高分五号01A AHSI的0级数据解析接口
+ * @brief 高分五号01A AHSI的0级数据解析接口。
  * @version 0.1
  * @date 2023-10-11
  *
@@ -23,25 +23,66 @@
 #include <opencv2/core.hpp>
 
 namespace hsp {
-
+/**
+ * @brief AHSI 0级数据处理类型。
+ *
+ * @details
+ *
+ */
 class AHSIData {
  public:
+  /**
+   * @brief 传感器类型。
+   *
+   */
   enum class SensorType { SWIR = 1, VNIR = 2 };
+  /**
+   * @brief 压缩模式。
+   *
+   */
   enum class Compress { Lossless = 0, Lossy8 = 1, Lossy4 = 2, Direct = 3 };
+  /**
+   * @brief
+   * AHSI帧类型。
+   *
+   */
   struct Frame {
     Frame() = delete;
     Frame(const cv::Mat& d, uint32_t i) : data(d), index{i} {}
     Frame(const Frame& other) : data{other.data}, index{other.index} {}
+    /**
+     * @brief 帧图像数据。DN值以16位无符号整型存储。
+     * 
+     */
     const cv::Mat& data;
+    /**
+     * @brief 帧序列号。
+     * 
+     */
     uint32_t index;
   };
+  /**
+   * @brief 帧引导头。
+   *
+   */
   const char leading_bytes[4] = {0x09, 0x15, static_cast<char>(0xC0), 0x00};
+  /**
+   * @brief 待处理的0级数据的路径。
+   *
+   */
   const std::string filename;
 
  public:
   explicit AHSIData(const std::string& datafile)
       : filename{datafile}, in_stream_(datafile, std::ios::binary) {}
   AHSIData(const AHSIData&) = delete;
+  /**
+   * @brief
+   * 遍历整个0级数据文件，更新传感器类型（VNIR、SWIR），图像尺寸（samples、lines、bands）等信息。
+   *
+   * @note 需要手工调用本函数一次，才能获取正确的传感器类型、图像尺寸，以及使用迭代器。
+   *
+   */
   void Traverse();
   Frame GetFrame(int i);
   int n_samples() const { return n_samples_; }
@@ -51,6 +92,10 @@ class AHSIData {
   Compress compress_mode() const { return compress_; }
 
   friend class FrameIterator;
+  /**
+   * @brief 帧迭代器。对迭代器解引用后，得到`AHSIData::Frame`格式的一帧影像。
+   *
+   */
   class FrameIterator : public std::iterator<std::input_iterator_tag, Frame> {
    public:
     explicit FrameIterator(AHSIData& raw_data, int cur = 0)  // NOLINT
@@ -81,7 +126,23 @@ class AHSIData {
     AHSIData& raw_;
     int cur_;
   };
+  /**
+   * @brief 返回指向起始位置的帧迭代器
+   *
+   * @note 遵循C++ STL的同行规则，begin() 和 end() 构成前闭后开区间，即[begin(),
+   * end())。
+   *
+   * @return FrameIterator
+   */
   FrameIterator begin() { return FrameIterator(*this, 0); }
+  /**
+   * @brief 返回指向末尾的迭代器
+   *
+   * @note 遵循C++ STL的同行规则，begin() 和 end() 构成前闭后开区间，即[begin(),
+   * end())。
+   *
+   * @return FrameIterator
+   */
   FrameIterator end() { return FrameIterator(*this, n_lines_); }
 
  private:

@@ -1,7 +1,7 @@
 /**
  * @file core.hpp
  * @author xiaoyc
- * @brief HSP核心功能头文件
+ * @brief HSP核心功能头文件。
  * @version 0.1
  * @date 2023-11-02
  *
