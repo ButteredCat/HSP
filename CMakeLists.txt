@@ -19,8 +19,7 @@ include_directories(
     ${GDAL_INCLUDE_DIR}
     ${OpenCV_INCLUDE_DIRS}
     ${GTEST_INCLUDE_DIRS}
-    include/
-    src/
+    hsp/
     )
 
 

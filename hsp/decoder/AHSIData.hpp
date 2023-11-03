@@ -12,7 +12,7 @@
 #define HSP_DECODER_AHSIDATA_HPP_
 
 // C++ Standard Library
-#include <istream>
+#include <fstream>
 #include <memory>
 #include <string>
 

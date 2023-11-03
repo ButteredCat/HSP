@@ -37,7 +37,7 @@ namespace cuda {
 template <typename T>
 class DarkBackgroundCorrection : public hsp::UnaryOperation {
  public:
-  cv::Mat operator()(cv::Mat m) override {
+  cv::Mat operator()(cv::Mat m) const override {
     cv::cuda::GpuMat img, res_gpu;
     cv::Mat res;
     img.upload(m);
@@ -68,7 +68,7 @@ class DarkBackgroundCorrection : public hsp::UnaryOperation {
 template <typename T_out, typename T_coeff = float>
 class NonUniformityCorrection : public UnaryOperation {
  public:
-  cv::Mat operator()(cv::Mat m) override {
+  cv::Mat operator()(cv::Mat m) const override {
     cv::cuda::GpuMat img, mid_gpu, res_gpu;
     cv::Mat mm, res;
     m.convertTo(mm, cv::DataType<T_coeff>::type);
@@ -110,7 +110,7 @@ class NonUniformityCorrection : public UnaryOperation {
 template <typename T>
 class GaussianFilter : public hsp::UnaryOperation {
  public:
-  cv::Mat operator()(cv::Mat m) override {
+  cv::Mat operator()(cv::Mat m) const override {
     cv::cuda::GpuMat src, dst;
     src.upload(m);
     auto ftr = cv::cuda::createGaussianFilter(
@@ -124,7 +124,7 @@ class GaussianFilter : public hsp::UnaryOperation {
 template <typename T_out, typename T_coeff = float>
 class UnifiedOps : public UnaryOperation {
  public:
-  cv::Mat operator()(cv::Mat m) override {
+  cv::Mat operator()(cv::Mat m) const override {
     cv::cuda::GpuMat img, mid_gpu, res_gpu, blured;
     cv::Mat res;
     img.upload(m);

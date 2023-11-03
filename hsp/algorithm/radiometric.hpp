@@ -39,7 +39,7 @@ namespace hsp {
 template <typename T>
 class DarkBackgroundCorrection : public UnaryOperation {
  public:
-  cv::Mat operator()(cv::Mat m) override { return m - m_; }
+  cv::Mat operator()(cv::Mat m) const override { return m - m_; }
 
   /**
    * @brief 载入暗电平系数文件
@@ -69,7 +69,7 @@ class DarkBackgroundCorrection : public UnaryOperation {
 template <typename T_out, typename T_coeff = float>
 class NonUniformityCorrection : public UnaryOperation {
  public:
-  cv::Mat operator()(cv::Mat m) override {
+  cv::Mat operator()(cv::Mat m) const override {
     cv::Mat res;
     m.convertTo(m, cv::DataType<T_coeff>::type);
     m = m.mul(a_) + b_;
@@ -111,7 +111,7 @@ class NonUniformityCorrection : public UnaryOperation {
 template <typename T_out = float, typename T_coeff = float>
 class AbsoluteRadiometricCorrection : public UnaryOperation {
  public:
-  cv::Mat operator()(cv::Mat m) override {
+  cv::Mat operator()(cv::Mat m) const override {
     cv::Mat res;
     m.convertTo(m, cv::DataType<T_coeff>::type);
     // m = m.mul(a_) + b_;
@@ -131,7 +131,7 @@ class AbsoluteRadiometricCorrection : public UnaryOperation {
  */
 class GaussianFilter : public UnaryOperation {
  public:
-  cv::Mat operator()(cv::Mat m) override {
+  cv::Mat operator()(cv::Mat m) const override {
     cv::Mat res;
     cv::GaussianBlur(m, res, cv::Size(3, 3), 0, 0);
     return res;
@@ -167,12 +167,12 @@ class SpatialDefectPixelCorrection {
  * @brief 光谱维盲元修复算法
  * @note 配合行迭代器使用
  */
-class SpectralDefectPixelCorrection {
+class SpectralDefectPixelCorrection : public UnaryOperation {
  public:
   double radius{3.0};
 
  public:
-  cv::Mat operator()(cv::Mat img) {
+  cv::Mat operator()(cv::Mat img) const override {
     cv::Mat res;
     cv::inpaint(img, dpm_, res, radius, cv::INPAINT_TELEA);
     return res;
