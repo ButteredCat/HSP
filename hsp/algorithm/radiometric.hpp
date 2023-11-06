@@ -145,7 +145,7 @@ class GaussianFilter : public UnaryOperation {
  * 内部调用OpenCV中的`inpaint`函数实现，使用`cv::INPAINT_TELEA`算法。
  * 使用示例如下：
  * \code{.cpp}
- *  hsp::SpatialDefectPixelCorrection dpc;
+ *  hsp::SpatialDefectivePixelCorrection dpc;
  *  dpc.load(badpixel);
  * 
  *  hsp::BandInputIterator<uint16_t> band_it(src_dataset.get(), 0),
@@ -160,7 +160,7 @@ class GaussianFilter : public UnaryOperation {
  * @note
  * 配合波段迭代器使用，需要同时给出波段号。由于是二元操作，所以不能放入hsp::UnaryOpCombo。
  */
-class SpatialDefectPixelCorrection {
+class SpatialDefectivePixelCorrection {
  public:
   /**
    * @brief `cv::inpaint`算法中的邻域半径。
@@ -190,7 +190,7 @@ class SpatialDefectPixelCorrection {
  *
  * @note 配合行迭代器使用。
  */
-class SpectralDefectPixelCorrection : public UnaryOperation {
+class SpectralDefectivePixelCorrection : public UnaryOperation {
  public:
   /**
    * @brief `cv::inpaint`算法中的邻域半径。
