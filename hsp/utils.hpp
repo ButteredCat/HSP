@@ -16,6 +16,7 @@
 #include <gdal_priv.h>
 
 // C++ Standard
+#include <fstream>
 #include <string>
 #include <vector>
 

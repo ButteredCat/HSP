@@ -27,12 +27,13 @@ namespace hsp {
  * @return cv::Mat 处理后的图像矩阵
  *
  */
+template <typename T>
 class UnaryOperation {
  public:
-  virtual cv::Mat operator()(cv::Mat) const = 0;
+  virtual T operator()(T) const = 0;
 };
 
-using unary_op = std::shared_ptr<UnaryOperation>;
+using unary_op = std::shared_ptr<UnaryOperation<cv::Mat>>;
 
 /**
  * @brief 构造一元图像操作指针。
@@ -46,7 +47,7 @@ const auto make_op = std::make_shared<T>;
  * @brief 一元操作组合器。
  *
  */
-class UnaryOpCombo : public UnaryOperation {
+class UnaryOpCombo : public UnaryOperation<cv::Mat> {
  public:
   /**
    * @brief 按照添加顺序，运行组合器中添加的算法。

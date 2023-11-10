@@ -54,11 +54,14 @@ class IteratorTest : public ::testing::Test {
     n_lines = src_dataset->GetRasterYSize();
     n_bands = src_dataset->GetRasterCount();
     type = src_dataset->GetRasterBand(1)->GetRasterDataType();
+    if (!fs::exists(work_dir)) {
+      fs::create_directory(work_dir);
+    }
   }
 
   void TearDown() override {
-    if (fs::exists(dst_file)) {
-      fs::remove(dst_file);
+    if (fs::exists(work_dir)) {
+      // fs::remove_all(work_dir);
     }
   }
 
@@ -76,10 +79,13 @@ class IteratorTest : public ::testing::Test {
  protected:
   GDALDatasetUniquePtr src_dataset{nullptr};
   GDALDataset* dst_dataset{nullptr};
-  const std::string src_file =
-      "/home/xiaoyc/dataset/HGY/"
-      "HGY_SWIR-20230429_110205-00000_outdark_mod_ref.dat";
-  const std::string dst_file = "/tmp/out.dat";
+  const fs::path testdata_dir = fs::path(std::getenv("HSP_UNITTEST"));
+  const fs::path work_dir = fs::path("/tmp/hsp_unittest/");
+  const fs::path src_file =
+      testdata_dir /
+      fs::path("/HGY/HGY_SWIR-20230429_110205-00000_outdark_mod_ref.dat");
+  const fs::path dst_file =
+      work_dir / src_file.filename().replace_extension("dat");
   int n_samples = 0;
   int n_lines = 0;
   int n_bands = 0;
@@ -153,7 +159,7 @@ TEST_F(IteratorTest, LineInputIteratorCopy) {
     ++beg;
   }
   GDALClose(dst_dataset);
-  EXPECT_TRUE(filecmp(src_file, dst_file));
+  EXPECT_TRUE(filecmp(src_file.string(), dst_file.string()));
 }
 
 TEST_F(IteratorTest, BandInputIteratorCopy) {
@@ -166,7 +172,7 @@ TEST_F(IteratorTest, BandInputIteratorCopy) {
     ++beg;
   }
   GDALClose(dst_dataset);
-  EXPECT_TRUE(filecmp(src_file, dst_file));
+  EXPECT_TRUE(filecmp(src_file.string(), dst_file.string()));
 }
 
 TEST_F(IteratorTest, SampleInputIteratorCopy) {
@@ -178,7 +184,7 @@ TEST_F(IteratorTest, SampleInputIteratorCopy) {
     beg++;
   }
   GDALClose(dst_dataset);
-  EXPECT_TRUE(filecmp(src_file, dst_file));
+  EXPECT_TRUE(filecmp(src_file.string(), dst_file.string()));
 }
 
 TEST_F(IteratorTest, SampleOutputIteratorCanBeCreated) {
@@ -221,7 +227,7 @@ TEST_F(IteratorTest, BandOutputIteratorCopy) {
     ++beg;
   }
   GDALClose(dst_dataset);
-  EXPECT_TRUE(filecmp(src_file, dst_file));
+  EXPECT_TRUE(filecmp(src_file.string(), dst_file.string()));
 }
 
 TEST_F(IteratorTest, SampleIteratorCopy) {
@@ -231,7 +237,7 @@ TEST_F(IteratorTest, SampleIteratorCopy) {
   hsp::SampleOutputIterator<float> obeg(dst_dataset, 0);
   std::copy(beg, end, obeg);
   GDALClose(dst_dataset);
-  EXPECT_TRUE(filecmp(src_file, dst_file))
+  EXPECT_TRUE(filecmp(src_file.string(), dst_file.string()))
       << "Destination file is not identical with source.";
 }
 
@@ -244,7 +250,7 @@ TEST_F(IteratorTest, LineIteratorCopyWithForLoop) {
     *obeg++ = *it;
   }
   GDALClose(dst_dataset);
-  EXPECT_TRUE(filecmp(src_file, dst_file))
+  EXPECT_TRUE(filecmp(src_file.string(), dst_file.string()))
       << "Destination file is not identical with source.";
 }
 
@@ -255,7 +261,7 @@ TEST_F(IteratorTest, LineIteratorCopy) {
   hsp::LineOutputIterator<float> obeg(dst_dataset, 0);
   std::copy(beg, end, obeg);
   GDALClose(dst_dataset);
-  EXPECT_TRUE(filecmp(src_file, dst_file))
+  EXPECT_TRUE(filecmp(src_file.string(), dst_file.string()))
       << "Destination file is not identical with source.";
 }
 
@@ -266,6 +272,6 @@ TEST_F(IteratorTest, BandIteratorCopy) {
   hsp::BandOutputIterator<float> obeg(dst_dataset, 0);
   std::copy(beg, end, obeg);
   GDALClose(dst_dataset);
-  EXPECT_TRUE(filecmp(src_file, dst_file))
+  EXPECT_TRUE(filecmp(src_file.string(), dst_file.string()))
       << "Destination file is not identical with source.";
 }

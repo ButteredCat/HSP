@@ -37,7 +37,7 @@ namespace hsp {
  * @note 配合行迭代器使用。
  */
 template <typename T>
-class DarkBackgroundCorrection : public UnaryOperation {
+class DarkBackgroundCorrection : public UnaryOperation<cv::Mat> {
  public:
   cv::Mat operator()(cv::Mat m) const override { return m - m_; }
 
@@ -67,7 +67,7 @@ class DarkBackgroundCorrection : public UnaryOperation {
  * @note 配合行迭代器使用
  */
 template <typename T_out, typename T_coeff = float>
-class NonUniformityCorrection : public UnaryOperation {
+class NonUniformityCorrection : public UnaryOperation<cv::Mat> {
  public:
   cv::Mat operator()(cv::Mat m) const override {
     cv::Mat res;
@@ -109,7 +109,7 @@ class NonUniformityCorrection : public UnaryOperation {
  * @note 配合行迭代器使用
  */
 template <typename T_out = float, typename T_coeff = float>
-class AbsoluteRadiometricCorrection : public UnaryOperation {
+class AbsoluteRadiometricCorrection : public UnaryOperation<cv::Mat> {
  public:
   cv::Mat operator()(cv::Mat m) const override {
     cv::Mat res;
@@ -129,7 +129,7 @@ class AbsoluteRadiometricCorrection : public UnaryOperation {
  * @brief 高斯滤波算法。
  *
  */
-class GaussianFilter : public UnaryOperation {
+class GaussianFilter : public UnaryOperation<cv::Mat> {
  public:
   cv::Mat operator()(cv::Mat m) const override {
     cv::Mat res;
@@ -190,7 +190,7 @@ class SpatialDefectivePixelCorrection {
  *
  * @note 配合行迭代器使用。
  */
-class SpectralDefectivePixelCorrection : public UnaryOperation {
+class SpectralDefectivePixelCorrection : public UnaryOperation<cv::Mat> {
  public:
   /**
    * @brief `cv::inpaint`算法中的邻域半径。

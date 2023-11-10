@@ -50,9 +50,9 @@ int main(void) {
 
   auto dbc = hsp::make_op<hsp::cuda::DarkBackgroundCorrection<DataType> >();
   dbc->load(dark_coeff);
-  auto nuc = hsp::make_op<hsp::NonUniformityCorrection<DataType, float> >();
+  auto nuc = hsp::make_op<hsp::cuda::NonUniformityCorrection<DataType, float> >();
   nuc->load(rel_a_coeff, rel_b_coeff);
-  hsp::UnaryOpCombo ops;
+  hsp::cuda::UnaryOpCombo ops;
   ops.add(dbc).add(nuc);
   // std::copy(beg, end, obeg);
   // std::transform(beg, end, obeg, ops);

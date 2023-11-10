@@ -23,6 +23,9 @@ class OperationTest : public ::testing::Test {
   void SetUp() override {
     GDALAllRegister();
     ASSERT_TRUE(fs::exists(src_file));
+    ASSERT_TRUE(fs::exists(dark_coeff));
+    ASSERT_TRUE(fs::exists(rel_a_coeff));
+    ASSERT_TRUE(fs::exists(rel_b_coeff));
     src_dataset = GDALDatasetUniquePtr(
         GDALDataset::FromHandle(GDALOpen(src_file.c_str(), GA_Update)));
     ASSERT_NE(nullptr, src_dataset) << "Source dataset should be created.";
@@ -31,11 +34,15 @@ class OperationTest : public ::testing::Test {
     n_lines = src_dataset->GetRasterYSize();
     n_bands = src_dataset->GetRasterCount();
     type = src_dataset->GetRasterBand(1)->GetRasterDataType();
+
+    if (!fs::exists(work_dir)) {
+      fs::create_directory(work_dir);
+    }
   }
 
   void TearDown() override {
-    if (fs::exists(dst_file)) {
-      // fs::remove(dst_file);
+    if (fs::exists(work_dir)) {
+      // fs::remove_all(work_dir);
     }
   }
 
@@ -54,13 +61,15 @@ class OperationTest : public ::testing::Test {
  protected:
   GDALDatasetUniquePtr src_dataset{nullptr};
   GDALDataset* dst_dataset{nullptr};
-  const std::string src_file =
-      "/home/xiaoyc/dataset/testdata/HGY_SWIR-20230429_110205-00000_out.dat";
-  const std::string dst_file =
-      "/home/xiaoyc/dataset/testdata/operation_test_out.dat";
-  const std::string dark_coeff = "/home/xiaoyc/dataset/testdata/dark.tif";
-  const std::string rel_a_coeff = "/home/xiaoyc/dataset/testdata/rel_a.tif";
-  const std::string rel_b_coeff = "/home/xiaoyc/dataset/testdata/rel_b.tif";
+  const fs::path testdata_dir = fs::path(std::getenv("HSP_UNITTEST"));
+  const fs::path work_dir = fs::path("/tmp/hsp_unittest/");
+  const fs::path src_file =
+      testdata_dir / fs::path("/HGY/HGY_SWIR-20230429_110205-00000_out.dat");
+  const fs::path dst_file = work_dir / src_file.filename();
+  const fs::path coeff_path = testdata_dir / fs::path("/HGY/coeff/SWIR/");
+  const fs::path dark_coeff = coeff_path / fs::path("dark.tif");
+  const fs::path rel_a_coeff = coeff_path / fs::path("rel_a.tif");
+  const fs::path rel_b_coeff = coeff_path / fs::path("rel_b.tif");
   int n_samples = 0;
   int n_lines = 0;
   int n_bands = 0;
@@ -73,9 +82,9 @@ TEST_F(OperationTest, DarkBackgroundCorrection) {
   CreateDst();
   hsp::LineOutputIterator<uint16_t> obeg(dst_dataset, 0);
   auto dbc = hsp::make_op<hsp::DarkBackgroundCorrection<uint16_t> >();
-  dbc->load(dark_coeff);
+  dbc->load(dark_coeff.string());
   auto nuc = hsp::make_op<hsp::NonUniformityCorrection<uint16_t, float> >();
-  nuc->load(rel_a_coeff, rel_b_coeff);
+  nuc->load(rel_a_coeff.string(), rel_b_coeff.string());
   hsp::UnaryOpCombo ops;
   ops.add(dbc).add(nuc);
   std::transform(beg, end, obeg, ops);
@@ -87,5 +96,5 @@ TEST_F(OperationTest, DarkBackgroundCorrection) {
                               n_samples, 1, type, n_bands, nullptr, 0, 0, 0);
   }
   GDALClose(dst_dataset);
-  EXPECT_FALSE(filecmp(src_file, dst_file));
+  EXPECT_FALSE(filecmp(src_file.string(), dst_file.string()));
 }
