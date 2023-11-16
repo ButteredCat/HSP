@@ -147,12 +147,12 @@ class GaussianFilter : public UnaryOperation<cv::Mat> {
  * \code{.cpp}
  *  hsp::SpatialDefectivePixelCorrection dpc;
  *  dpc.load(badpixel);
- * 
+ *
  *  hsp::BandInputIterator<uint16_t> band_it(src_dataset.get(), 0),
  *     band_it_end(src_dataset.get());
  *  hsp::BandOutputIterator<uint16_t> band_out_it(dst_dataset.get(), 0);
- * 
- *  // 用 boost::counting_iterator 生成连续的波段号 
+ *
+ *  // 用 boost::counting_iterator 生成连续的波段号
  *  std::transform(band_it, band_it_end, boost::counting_iterator<int>(0),
  *                 band_out_it, dpc);
  * \endcode
@@ -210,6 +210,80 @@ class SpectralDefectivePixelCorrection : public UnaryOperation<cv::Mat> {
 
  private:
   cv::Mat dpm_;
+};
+
+/**
+ * @brief 对连续盲元进行特殊处理的盲元修复算法，在光谱维进行盲元修复。
+ *
+ */
+class DefectivePixelCorrection : public UnaryOperation<cv::Mat> {
+ public:
+  cv::Mat operator()(cv::Mat img) const override {
+    cv::Mat res;
+    return res;
+  }
+
+  void load(const std::string& filename) {
+    dpm_ = hsp::load_raster<uint8_t>(filename);
+    find_consecutive();
+  }
+
+  cv::Mat get_row_label() const { return row_label_; }
+
+  cv::Mat get_col_label() const { return col_label_; }
+
+ private:
+  cv::Mat dpm_;
+  cv::Mat row_label_;
+  cv::Mat col_label_;
+
+ private:
+  void find_consecutive() {
+    using LabelType = uint16_t;
+    row_label_ = cv::Mat::zeros(dpm_.size(), cv::DataType<LabelType>::type);
+    col_label_ = cv::Mat::zeros(dpm_.size(), cv::DataType<LabelType>::type);
+    // first column
+    for (int i = 1; i < dpm_.rows; ++i) {
+      if (dpm_.at<uint8_t>(i, 0) == 1) {
+        col_label_.at<LabelType>(i, 0) = dpm_.at<uint8_t>(i - 1, 0) + 1;
+      }
+    }
+    // first row
+    for (int j = 1; j < dpm_.cols; ++j) {
+      if (dpm_.at<uint8_t>(0, j) == 1) {
+        row_label_.at<LabelType>(0, j) = dpm_.at<uint8_t>(0, j - 1) + 1;
+      }
+    }
+
+    for (int i = 1; i < dpm_.rows; ++i) {
+      for (int j = 1; j < dpm_.cols; ++j) {
+        if (dpm_.at<uint8_t>(i, j) == 1) {
+          row_label_.at<LabelType>(i, j) =
+              row_label_.at<LabelType>(i, j - 1) + 1;
+          col_label_.at<LabelType>(i, j) =
+              col_label_.at<LabelType>(i - 1, j) + 1;
+        }
+      }
+    }
+
+    for (int i = dpm_.rows - 1; i >= 0; --i) {
+      for (int j = dpm_.cols - 2; j >= 0; --j) {
+        if (row_label_.at<LabelType>(i, j) != 0 &&
+            row_label_.at<LabelType>(i, j + 1) != 0) {
+          row_label_.at<LabelType>(i, j) = row_label_.at<LabelType>(i, j + 1);
+        }
+      }
+    }
+
+    for (int j = dpm_.cols - 1; j >= 0; --j) {
+      for (int i = dpm_.rows - 2; i >= 0; --i) {
+        if (col_label_.at<LabelType>(i, j) != 0 &&
+            col_label_.at<LabelType>(i + 1, j) != 0) {
+          col_label_.at<LabelType>(i, j) = col_label_.at<LabelType>(i + 1, j);
+        }
+      }
+    }
+  }
 };
 
 }  // namespace hsp

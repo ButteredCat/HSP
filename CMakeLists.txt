@@ -23,7 +23,7 @@ include_directories(
     )
 
 
-add_subdirectory(app)
+add_subdirectory(samples)
 
 if(GTEST_FOUND)
     enable_testing()

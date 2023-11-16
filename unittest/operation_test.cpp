@@ -9,6 +9,9 @@
 // Boost
 #include <boost/filesystem.hpp>
 
+// OpenCV
+#include <opencv2/imgcodecs.hpp>
+
 // project
 #include "../hsp/algorithm/cuda.hpp"
 #include "../hsp/algorithm/radiometric.hpp"
@@ -97,4 +100,22 @@ TEST_F(OperationTest, DarkBackgroundCorrection) {
   }
   GDALClose(dst_dataset);
   EXPECT_FALSE(filecmp(src_file.string(), dst_file.string()));
+}
+
+TEST(DPCTest, FindConsecutive) {
+  GDALAllRegister();
+  const fs::path testdata_dir = fs::path(std::getenv("HSP_UNITTEST"));
+  const fs::path work_dir = fs::path("/tmp/hsp_unittest/");
+  const fs::path badpixel =
+      testdata_dir / fs::path("/GF501A/coeff/SWIR/badpixel.tif");
+
+  if (!fs::exists(work_dir)) {
+    fs::create_directory(work_dir);
+  }
+  hsp::DefectivePixelCorrection dpc;
+  dpc.load(badpixel.string());
+  cv::imwrite((work_dir / fs::path("col_labeled.tif")).string(),
+              dpc.get_col_label());
+  cv::imwrite((work_dir / fs::path("row_labeled.tif")).string(),
+              dpc.get_row_label());
 }
