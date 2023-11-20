@@ -228,8 +228,20 @@ class DefectivePixelCorrection : public UnaryOperation<cv::Mat> {
     find_consecutive();
   }
 
+  /**
+   * @brief
+   * 返回行连续盲元标签矩阵。0代表不是盲元，1代表该盲元左右无紧邻的盲元，n>1代表该盲元左右（含自身）共有n个紧邻盲元。
+   *
+   * @return cv::Mat
+   */
   cv::Mat get_row_label() const { return row_label_; }
 
+  /**
+   * @brief
+   * 返回列连续盲元标签矩阵。0代表不是盲元，1代表该盲元上下无紧邻的盲元，n>1代表该盲元上下（含自身）共有n个紧邻盲元。
+   *
+   * @return cv::Mat
+   */
   cv::Mat get_col_label() const { return col_label_; }
 
  private:
@@ -242,30 +254,16 @@ class DefectivePixelCorrection : public UnaryOperation<cv::Mat> {
     using LabelType = uint16_t;
     row_label_ = cv::Mat::zeros(dpm_.size(), cv::DataType<LabelType>::type);
     col_label_ = cv::Mat::zeros(dpm_.size(), cv::DataType<LabelType>::type);
-    // first column
-    for (int i = 1; i < dpm_.rows; ++i) {
-      if (dpm_.at<uint8_t>(i, 0) == 1) {
-        col_label_.at<LabelType>(i, 0) = dpm_.at<uint8_t>(i - 1, 0) + 1;
-      }
-    }
-    // first row
-    for (int j = 1; j < dpm_.cols; ++j) {
-      if (dpm_.at<uint8_t>(0, j) == 1) {
-        row_label_.at<LabelType>(0, j) = dpm_.at<uint8_t>(0, j - 1) + 1;
-      }
-    }
-
-    for (int i = 1; i < dpm_.rows; ++i) {
+    // row label
+    for (int i = 0; i < dpm_.rows; ++i) {
+      row_label_.at<LabelType>(i, 0) = dpm_.at<uint8_t>(i, 0);
       for (int j = 1; j < dpm_.cols; ++j) {
         if (dpm_.at<uint8_t>(i, j) == 1) {
           row_label_.at<LabelType>(i, j) =
               row_label_.at<LabelType>(i, j - 1) + 1;
-          col_label_.at<LabelType>(i, j) =
-              col_label_.at<LabelType>(i - 1, j) + 1;
         }
       }
     }
-
     for (int i = dpm_.rows - 1; i >= 0; --i) {
       for (int j = dpm_.cols - 2; j >= 0; --j) {
         if (row_label_.at<LabelType>(i, j) != 0 &&
@@ -274,7 +272,16 @@ class DefectivePixelCorrection : public UnaryOperation<cv::Mat> {
         }
       }
     }
-
+    // column label
+    for (int j = 0; j < dpm_.cols; ++j) {
+      col_label_.at<LabelType>(0, j) = dpm_.at<uint8_t>(0, j);
+      for (int i = 1; i < dpm_.rows; ++i) {
+        if (dpm_.at<uint8_t>(i, j) == 1) {
+          col_label_.at<LabelType>(i, j) =
+              col_label_.at<LabelType>(i - 1, j) + 1;
+        }
+      }
+    }
     for (int j = dpm_.cols - 1; j >= 0; --j) {
       for (int i = dpm_.rows - 2; i >= 0; --i) {
         if (col_label_.at<LabelType>(i, j) != 0 &&
