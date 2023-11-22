@@ -1,7 +1,7 @@
 /**
  * @file cuda_test.cpp
  * @author xiaoyc
- * @brief CUDA 算法测试用例
+ * @brief CUDA 算法测试用例。
  * @version 0.1
  * @date 2023-11-09
  *
@@ -84,6 +84,16 @@ TEST_F(GF501AVNIRTest, Traverse) {
   ASSERT_EQ(L0_data.n_samples(), 2048);
   ASSERT_EQ(L0_data.n_lines(), 2412);
   ASSERT_EQ(L0_data.n_bands(), 150);
+}
+
+TEST_F(GF501AVNIRTest, Iterator) {
+  AHSIData::FrameIterator it(&L0_data, 0);
+  auto beg = L0_data.begin();
+  ASSERT_EQ(it, beg);
+  it++;
+  ASSERT_NE(it, beg);
+  ++beg;
+  ASSERT_EQ(it, beg);
 }
 
 TEST_F(GF501AVNIRTest, L0Decoding) {

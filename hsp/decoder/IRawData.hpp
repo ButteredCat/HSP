@@ -76,22 +76,28 @@ class IRawData {
         : raw_{raw_data}, cur_{cur} {
       raw_data->Traverse();
     }
+
     FrameIterator operator++() {
       ++cur_;
       return *this;
     }
+
     FrameIterator operator++(int) {
       FrameIterator old(*this);
       ++(*this);
       return old;
     }
+
     bool operator==(const FrameIterator& other) const {
       return cur_ == other.cur_;
     }
+
     bool operator!=(const FrameIterator& other) const {
       return !(*this == other);
     }
+
     Tf operator*() const { return raw_->GetFrame(cur_); }
+
     // Frame* operator->() const {
     //   return raw_->GetFrame(cur_);
     // };
