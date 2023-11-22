@@ -41,7 +41,7 @@ namespace hsp {
 class GF501A_DBC {
  public:
   using CoeffDataType = float;
-  cv::Mat operator()(const AHSIData::Frame& frame) const {
+  cv::Mat operator()(const AHSIFrame& frame) const {
     cv::Mat dark;
     cv::Mat tmp = a_ * static_cast<CoeffDataType>(frame.index) + b_;
     tmp.convertTo(dark, cv::DataType<uint16_t>::type);
@@ -71,7 +71,7 @@ using cv::cuda::subtract;
  */
 class GF501A_DBC {
  public:
-  GpuMat operator()(const hsp::AHSIData::Frame& frame) {
+  GpuMat operator()(const hsp::AHSIFrame& frame) {
     GpuMat img_orig, img, idx_res, dark_res, sub_res, res;
     img_orig.upload(frame.data);
     img_orig.convertTo(img, cv::DataType<double>::type);
@@ -101,7 +101,7 @@ class GF501A_DBC {
  */
 class GF501A_VN_proc {
  public:
-  cv::Mat operator()(const AHSIData::Frame& frame) {
+  cv::Mat operator()(const AHSIFrame& frame) {
     GpuMat img_orig, img, img_res, idx_res, sub_res, res_gpu, res_uint;
     img_orig.upload(frame.data);
     img_orig.convertTo(img, cv::DataType<double>::type);

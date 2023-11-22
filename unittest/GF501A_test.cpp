@@ -29,6 +29,7 @@
 
 namespace fs = boost::filesystem;
 using hsp::AHSIData;
+using hsp::AHSIFrame;
 
 class GF501AVNIRTest : public ::testing::Test {
  protected:
@@ -88,7 +89,7 @@ TEST_F(GF501AVNIRTest, Traverse) {
 TEST_F(GF501AVNIRTest, L0Decoding) {
   hsp::LineOutputIterator<uint16_t> it(dataset, 0);
   std::transform(L0_data.begin(), L0_data.end(), it,
-                 [](const AHSIData::Frame& frame) { return frame.data; });
+                 [](const AHSIFrame& frame) { return frame.data; });
   SUCCEED();
 }
 

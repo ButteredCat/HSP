@@ -2,7 +2,7 @@
  * @file AHSIData.hpp
  * @author xiaoyc
  * @brief 高分五号01A AHSI的0级数据解析接口。
- * @version 0.1
+ * @version 0.2
  * @date 2023-10-11
  *
  * @copyright Copyright (c) 2023
@@ -12,60 +12,65 @@
 #define HSP_DECODER_AHSIDATA_HPP_
 
 // C++ Standard Library
-#include <fstream>
 #include <memory>
 #include <string>
 
 // Boost
 #include <boost/endian/conversion.hpp>
 
-// OpenCV
-#include <opencv2/core.hpp>
+// hsp
+#include "./IRawData.hpp"
 
 namespace hsp {
+
+/**
+ * @brief AHSI帧类型。
+ *
+ */
+struct AHSIFrame {
+  AHSIFrame() = delete;
+
+  AHSIFrame(const cv::Mat& d, uint32_t i) : data(d), index{i} {}
+
+  AHSIFrame(const AHSIFrame& other) : data{other.data}, index{other.index} {}
+
+  /**
+   * @brief 帧图像数据。DN值以16位无符号整型存储。
+   *
+   */
+  const cv::Mat& data;
+
+  /**
+   * @brief 帧序列号。
+   *
+   */
+  uint32_t index;
+};
+
 /**
  * @brief AHSI 0级数据处理类型。
  *
- * @details
- *
  */
-class AHSIData {
+class AHSIData : public IRawData<AHSIFrame> {
  public:
   /**
    * @brief 传感器类型。
    *
    */
   enum class SensorType { SWIR = 1, VNIR = 2 };
+
   /**
    * @brief 压缩模式。
    *
    */
   enum class Compress { Lossless = 0, Lossy8 = 1, Lossy4 = 2, Direct = 3 };
-  /**
-   * @brief
-   * AHSI帧类型。
-   *
-   */
-  struct Frame {
-    Frame() = delete;
-    Frame(const cv::Mat& d, uint32_t i) : data(d), index{i} {}
-    Frame(const Frame& other) : data{other.data}, index{other.index} {}
-    /**
-     * @brief 帧图像数据。DN值以16位无符号整型存储。
-     * 
-     */
-    const cv::Mat& data;
-    /**
-     * @brief 帧序列号。
-     * 
-     */
-    uint32_t index;
-  };
+
   /**
    * @brief 帧引导头。
    *
    */
   const char leading_bytes[4] = {0x09, 0x15, static_cast<char>(0xC0), 0x00};
+
   /**
    * @brief 待处理的0级数据的路径。
    *
@@ -73,87 +78,38 @@ class AHSIData {
   const std::string filename;
 
  public:
-  explicit AHSIData(const std::string& datafile)
-      : filename{datafile}, in_stream_(datafile, std::ios::binary) {}
-  AHSIData(const AHSIData&) = delete;
+  /**
+   * @brief 构造函数。
+   *
+   * @param datafile 0级数据路径。
+   */
+  explicit AHSIData(const std::string& datafile) : IRawData(datafile) {}
+
   /**
    * @brief
    * 遍历整个0级数据文件，更新传感器类型（VNIR、SWIR），图像尺寸（samples、lines、bands）等信息。
    *
-   * @note 需要手工调用本函数一次，才能获取正确的传感器类型、图像尺寸，以及使用迭代器。
+   * @note
+   * 需要手工调用本函数一次，才能获取正确的传感器类型、图像尺寸，以及使用迭代器。
    *
    */
-  void Traverse();
-  Frame GetFrame(int i);
-  int n_samples() const { return n_samples_; }
-  int n_lines() const { return n_lines_; }
-  int n_bands() const { return n_bands_; }
+  void Traverse() override;
+
+  /**
+   * @brief 返回第 i 帧。
+   *
+   * @param i 帧计数，从0开始。
+   * @return AHSIFrame 包含帧图像数据和帧序列号（后续扣暗电平步骤需要用到）。
+   */
+  AHSIFrame GetFrame(int i) override;
+
   SensorType sensor_type() const { return type_; }
+
   Compress compress_mode() const { return compress_; }
 
-  friend class FrameIterator;
-  /**
-   * @brief 帧迭代器。对迭代器解引用后，得到`AHSIData::Frame`格式的一帧影像。
-   *
-   */
-  class FrameIterator : public std::iterator<std::input_iterator_tag, Frame> {
-   public:
-    explicit FrameIterator(AHSIData& raw_data, int cur = 0)  // NOLINT
-        : raw_{raw_data}, cur_{cur} {
-      raw_data.Traverse();
-    }
-    FrameIterator operator++() {
-      ++cur_;
-      return *this;
-    }
-    FrameIterator operator++(int) {
-      FrameIterator old(*this);
-      ++(*this);
-      return old;
-    }
-    bool operator==(const FrameIterator& other) const {
-      return cur_ == other.cur_;
-    }
-    bool operator!=(const FrameIterator& other) const {
-      return !(*this == other);
-    }
-    Frame operator*() const { return raw_.GetFrame(cur_); }
-    // Frame* operator->() const {
-    //   return &raw_.GetFrame(cur_);
-    // };
-
-   private:
-    AHSIData& raw_;
-    int cur_;
-  };
-  /**
-   * @brief 返回指向起始位置的帧迭代器
-   *
-   * @note 遵循C++ STL的同行规则，begin() 和 end() 构成前闭后开区间，即[begin(),
-   * end())。
-   *
-   * @return FrameIterator
-   */
-  FrameIterator begin() { return FrameIterator(*this, 0); }
-  /**
-   * @brief 返回指向末尾的迭代器
-   *
-   * @note 遵循C++ STL的同行规则，begin() 和 end() 构成前闭后开区间，即[begin(),
-   * end())。
-   *
-   * @return FrameIterator
-   */
-  FrameIterator end() { return FrameIterator(*this, n_lines_); }
-
  private:
-  bool is_traversed_ = false;
-  std::ifstream in_stream_;
-  int n_samples_ = 0;
-  int n_bands_ = 0;
-  int n_lines_ = 0;
   SensorType type_ = SensorType::SWIR;
   Compress compress_ = Compress::Lossless;
-  cv::Mat img_;
 };
 
 void AHSIData::Traverse() {
@@ -209,7 +165,7 @@ void AHSIData::Traverse() {
   is_traversed_ = true;
 }
 
-AHSIData::Frame AHSIData::GetFrame(int i) {
+AHSIFrame AHSIData::GetFrame(int i) {
   Traverse();
   if (i >= n_lines_) {
     throw std::out_of_range("");
@@ -250,7 +206,7 @@ AHSIData::Frame AHSIData::GetFrame(int i) {
     buffer_offset += band_size;
     img_offset += n_samples_ * 2;
   }
-  return Frame(img_, index);
+  return AHSIFrame(img_, index);
 }
 
 }  // namespace hsp
