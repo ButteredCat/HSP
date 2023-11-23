@@ -119,6 +119,17 @@ TEST_F(GF501AVNIRTest, VNIRProcessing) {
   SUCCEED();
 }
 
+TEST(GF501ATest, Exception) {
+  const fs::path testdata_dir = fs::path(std::getenv("HSP_UNITTEST"));
+  const fs::path src_file =
+      testdata_dir /
+      fs::path("/GF501A/GF5A_AHSI_VN_20230722_354_621_L00000041058.DAT");
+
+  hsp::AHSIData data(src_file.string());
+  auto it = data.begin();
+  EXPECT_THROW(*it, std::runtime_error);
+}
+
 #ifdef HAVE_CUDA
 TEST_F(GF501AVNIRTest, VNIRProcessingCUDAv1) {
   hsp::cuda::UnaryOpCombo ops;

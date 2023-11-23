@@ -12,7 +12,6 @@
 #define HSP_DECODER_IRAWDATA_HPP_
 
 // C++ Standard
-#include <fstream>
 #include <iterator>
 #include <string>
 
@@ -32,6 +31,10 @@ namespace hsp {
 template <typename Tf = cv::Mat>
 class IRawData {
  public:
+  /**
+   * @brief 原始数据路径。
+   *
+   */
   const std::string filename;
 
  public:
@@ -40,8 +43,7 @@ class IRawData {
    *
    * @param datafile 原始数据路径。
    */
-  explicit IRawData(const std::string& datafile)
-      : filename{datafile}, in_stream_(datafile, std::ios::binary) {}
+  explicit IRawData(const std::string& datafile) : filename{datafile} {}
 
   IRawData(const IRawData&) = delete;
 
@@ -58,7 +60,7 @@ class IRawData {
    * @param i 原始数据的帧序号，从0开始计数。
    * @return Tf 帧类型，默认是cv::Mat，可自定义以携带其他帧信息。
    */
-  virtual Tf GetFrame(int i) = 0;
+  virtual Tf GetFrame(int i) const = 0;
 
   int n_samples() const { return n_samples_; }
 
@@ -72,9 +74,9 @@ class IRawData {
    */
   class FrameIterator : public std::iterator<std::input_iterator_tag, Tf> {
    public:
-    explicit FrameIterator(IRawData* raw_data, int cur = 0)
+    explicit FrameIterator(const IRawData* raw_data, int cur = 0)
         : raw_{raw_data}, cur_{cur} {
-      raw_data->Traverse();
+      // raw_->Traverse();
     }
 
     FrameIterator operator++() {
@@ -103,7 +105,7 @@ class IRawData {
     // };
 
    private:
-    IRawData* raw_;
+    const IRawData* raw_;
     int cur_;
   };
 
@@ -115,7 +117,7 @@ class IRawData {
    *
    * @return FrameIterator 指向起始位置的帧迭代器。
    */
-  FrameIterator begin() { return FrameIterator(this, 0); }
+  FrameIterator begin() const { return FrameIterator(this, 0); }
 
   /**
    * @brief 返回指向末尾的迭代器。
@@ -125,11 +127,10 @@ class IRawData {
    *
    * @return FrameIterator 指向末尾的迭代器。
    */
-  FrameIterator end() { return FrameIterator(this, n_lines_); }
+  FrameIterator end() const { return FrameIterator(this, n_lines_); }
 
  protected:
   bool is_traversed_ = false;
-  std::ifstream in_stream_;
   int n_samples_ = 0;
   int n_bands_ = 0;
   int n_lines_ = 0;

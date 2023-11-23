@@ -12,6 +12,7 @@
 #define HSP_DECODER_AHSIDATA_HPP_
 
 // C++ Standard Library
+#include <fstream>
 #include <memory>
 #include <string>
 
@@ -71,12 +72,6 @@ class AHSIData : public IRawData<AHSIFrame> {
    */
   const char leading_bytes[4] = {0x09, 0x15, static_cast<char>(0xC0), 0x00};
 
-  /**
-   * @brief 待处理的0级数据的路径。
-   *
-   */
-  const std::string filename;
-
  public:
   /**
    * @brief 构造函数。
@@ -101,7 +96,7 @@ class AHSIData : public IRawData<AHSIFrame> {
    * @param i 帧计数，从0开始。
    * @return AHSIFrame 包含帧图像数据和帧序列号（后续扣暗电平步骤需要用到）。
    */
-  AHSIFrame GetFrame(int i) override;
+  AHSIFrame GetFrame(int i) const override;
 
   SensorType sensor_type() const { return type_; }
 
@@ -119,10 +114,11 @@ void AHSIData::Traverse() {
   //  parse the first frame
   const int buffer_size = 5 * 1024;
   auto buffer = std::make_unique<char[]>(buffer_size);
-  if (!in_stream_) {
+  std::ifstream in_stream(filename, std::ios::binary);
+  if (!in_stream) {
     throw std::runtime_error("unable to open raw data");
   }
-  in_stream_.read(buffer.get(), buffer_size);
+  in_stream.read(buffer.get(), buffer_size);
 
   auto head = std::search(buffer.get(), buffer.get() + buffer_size,
                           leading_bytes, leading_bytes + sizeof(leading_bytes));
@@ -148,30 +144,32 @@ void AHSIData::Traverse() {
   const size_t band_size = 6 + 6 + n_samples_ * 2;
   const size_t frame_size = 8 + band_size * n_bands_;
   const size_t read_size = 100;
-  in_stream_.seekg(0, in_stream_.beg);
-  while (in_stream_.read(buffer.get(), read_size)) {
+  in_stream.seekg(0, in_stream.beg);
+  while (in_stream.read(buffer.get(), read_size)) {
     head = std::search(buffer.get(), buffer.get() + buffer_size, leading_bytes,
                        leading_bytes + sizeof(leading_bytes));
     if (head != buffer.get() + 8) {
       break;
     }
     ++n_lines_;
-    in_stream_.seekg(-read_size + frame_size, in_stream_.cur);
+    in_stream.seekg(-read_size + frame_size, in_stream.cur);
   }
   // reserve space
   img_ = cv::Mat::zeros(cv::Size(n_samples_, n_bands_),
                         cv::DataType<uint16_t>::type);
-  in_stream_.clear();
   is_traversed_ = true;
 }
 
-AHSIFrame AHSIData::GetFrame(int i) {
-  Traverse();
+AHSIFrame AHSIData::GetFrame(int i) const {
+  if (!is_traversed_) {
+    throw std::runtime_error("Data is not traversed");
+  }
   if (i >= n_lines_) {
     throw std::out_of_range("");
   }
-  if (!in_stream_) {
-    in_stream_.clear();
+  std::ifstream in_stream(filename, std::ios::binary);
+  if (!in_stream) {
+    throw std::runtime_error("unable to open raw data");
   }
 
   // size in bytes
@@ -180,8 +178,8 @@ AHSIFrame AHSIData::GetFrame(int i) {
   const size_t frame_size = band_size * n_bands_;
 
   auto buffer = std::make_unique<char[]>(frame_size);
-  in_stream_.seekg(8 + i * (frame_size + 8), in_stream_.beg);
-  in_stream_.read(buffer.get(), frame_size);
+  in_stream.seekg(8 + i * (frame_size + 8), in_stream.beg);
+  in_stream.read(buffer.get(), frame_size);
   uint32_t index =
       boost::endian::load_big_u24(reinterpret_cast<uint8_t*>(buffer.get() + 9));
   // Method 1

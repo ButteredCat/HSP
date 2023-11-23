@@ -27,7 +27,7 @@ class HGYData : public IRawData<cv::Mat> {
  public:
   explicit HGYData(const std::string& datafile) : IRawData(datafile) {}
   void Traverse() override;
-  cv::Mat GetFrame(int i) override;
+  cv::Mat GetFrame(int i) const override;
 };
 
 void HGYData::Traverse() {}

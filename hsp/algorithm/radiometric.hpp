@@ -138,6 +138,12 @@ class GaussianFilter : public UnaryOperation<cv::Mat> {
   }
 };
 
+static cv::Mat meanBlur(cv::Mat input, int ksize, cv::Mat mask) {
+  cv::Mat blured;
+  cv::medianBlur(input, blured, ksize);
+  return input * (1 - mask) + blured * mask;
+}
+
 /**
  * @brief 空间维盲元修复算法。
  *
@@ -145,7 +151,7 @@ class GaussianFilter : public UnaryOperation<cv::Mat> {
  * 内部调用OpenCV中的`inpaint`函数实现，使用`cv::INPAINT_TELEA`算法。
  * 使用示例如下：
  * \code{.cpp}
- *  hsp::SpatialDefectivePixelCorrection dpc;
+ *  hsp::DefectivePixelCorrectionSpatial dpc;
  *  dpc.load(badpixel);
  *
  *  hsp::BandInputIterator<uint16_t> band_it(src_dataset.get(), 0),
@@ -160,13 +166,19 @@ class GaussianFilter : public UnaryOperation<cv::Mat> {
  * @note
  * 配合波段迭代器使用，需要同时给出波段号。由于是二元操作，所以不能放入hsp::UnaryOpCombo。
  */
-class SpatialDefectivePixelCorrection {
+class DefectivePixelCorrectionSpatial {
  public:
   /**
    * @brief `cv::inpaint`算法中的邻域半径。
    *
    */
   double radius{3.0};
+
+  /**
+   * @brief 均值平滑算法中的核尺寸。
+   *
+   */
+  int ksize{3};
 
  public:
   cv::Mat operator()(cv::Mat img, int band) const {
@@ -190,7 +202,7 @@ class SpatialDefectivePixelCorrection {
  *
  * @note 配合行迭代器使用。
  */
-class SpectralDefectivePixelCorrection : public UnaryOperation<cv::Mat> {
+class DefectivePixelCorrectionSpectral : public UnaryOperation<cv::Mat> {
  public:
   /**
    * @brief `cv::inpaint`算法中的邻域半径。
@@ -198,12 +210,19 @@ class SpectralDefectivePixelCorrection : public UnaryOperation<cv::Mat> {
    */
   double radius{3.0};
 
+  /**
+   * @brief 均值平滑算法中的核尺寸。
+   *
+   */
+  int ksize{3};
+
  public:
   cv::Mat operator()(cv::Mat img) const override {
     cv::Mat res;
     cv::inpaint(img, dpm_, res, radius, cv::INPAINT_TELEA);
     return res;
   }
+
   void load(const std::string& filename) {
     dpm_ = hsp::load_raster<uint8_t>(filename);
   }
