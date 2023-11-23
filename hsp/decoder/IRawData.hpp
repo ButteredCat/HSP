@@ -62,10 +62,25 @@ class IRawData {
    */
   virtual Tf GetFrame(int i) const = 0;
 
+  /**
+   * @brief 原始数据每个波段的像元数。
+   *
+   * @return int
+   */
   int n_samples() const { return n_samples_; }
 
+  /**
+   * @brief 原始数据包含的行（帧）数。
+   *
+   * @return int
+   */
   int n_lines() const { return n_lines_; }
 
+  /**
+   * @brief 原始数据包含的波段数。
+   *
+   * @return int
+   */
   int n_bands() const { return n_bands_; }
 
   /**
@@ -79,25 +94,58 @@ class IRawData {
       // raw_->Traverse();
     }
 
+    /**
+     * @brief 迭代器前缀自增。
+     *
+     * @return FrameIterator
+     */
     FrameIterator operator++() {
       ++cur_;
       return *this;
     }
 
+    /**
+     * @brief 迭代器后缀自增。
+     *
+     * @return FrameIterator
+     */
     FrameIterator operator++(int) {
       FrameIterator old(*this);
       ++(*this);
       return old;
     }
 
+    /**
+     * @brief 判断2个迭代器是否相等。
+     *
+     * @note 只判断帧序号，不判断是否指向相同的数据集。
+     *
+     * @param other 待比较的另一个迭代器。
+     * @return true
+     * @return false
+     */
     bool operator==(const FrameIterator& other) const {
       return cur_ == other.cur_;
     }
 
+    /**
+     * @brief 判断2个迭代器是否不等。
+     *
+     * @note 只判断帧序号，不判断是否指向相同的数据集。
+     *
+     * @param other 待比较的另一个迭代器。
+     * @return true
+     * @return false
+     */
     bool operator!=(const FrameIterator& other) const {
       return !(*this == other);
     }
 
+    /**
+     * @brief 迭代器解引用操作。
+     *
+     * @return Tf
+     */
     Tf operator*() const { return raw_->GetFrame(cur_); }
 
     // Frame* operator->() const {

@@ -74,11 +74,29 @@ class UnaryOpCombo : public UnaryOperation<cv::Mat> {
     return *this;
   }
 
+  /**
+   * @brief 删除最后一个操作。
+   *
+   * @return UnaryOpCombo&
+   */
   UnaryOpCombo& remove_back() {
     ops_.pop_back();
     return *this;
   }
+
+  /**
+   * @brief 返回包含的操作个数。
+   *
+   * @return std::size_t
+   */
   std::size_t size() const { return ops_.size(); }
+
+  /**
+   * @brief 容器是否为空。
+   *
+   * @return true
+   * @return false
+   */
   bool empty() const { return ops_.empty(); }
 
  private:
