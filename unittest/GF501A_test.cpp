@@ -136,6 +136,69 @@ TEST(GF501ATest, Exception) {
   EXPECT_THROW(*it, std::runtime_error);
 }
 
+class GF501ASWIRTest : public ::testing::Test {
+ protected:
+  void SetUp() override {
+    GDALAllRegister();
+    L0_data.Traverse();
+
+    if (!fs::exists(work_dir)) {
+      fs::create_directory(work_dir);
+    }
+
+    auto poDriver = GetGDALDriverManager()->GetDriverByName("GTiff");
+    ASSERT_NE(nullptr, poDriver);
+    papszOptions = CSLSetNameValue(papszOptions, "INTERLEAVE", "BAND");
+    dataset = GDALDataset::FromHandle(poDriver->Create(
+        dst_file.c_str(), L0_data.n_samples(), L0_data.n_lines(),
+        L0_data.n_bands(), GDT_UInt16, papszOptions));
+    ASSERT_NE(nullptr, dataset);
+  }
+
+  void TearDown() override {
+    GDALClose(dataset);
+    CSLDestroy(papszOptions);
+    if (fs::exists(work_dir)) {
+      // fs::remove_all(work_dir);
+    }
+  }
+
+ protected:
+  GDALDataset* dataset{nullptr};
+  char** papszOptions{nullptr};
+  const fs::path testdata_dir = fs::path(std::getenv("HSP_UNITTEST"));
+  const fs::path coeff_path = testdata_dir / fs::path("/GF501A/coeff/SWIR/");
+  const fs::path work_dir = fs::path("/tmp/hsp_unittest/");
+  const fs::path src_file =
+      testdata_dir /
+      fs::path("/GF501A/GF5A_AHSI_SW_20230722_354_621_L00000041058.DAT");
+  const fs::path dst_file =
+      work_dir / src_file.filename().replace_extension("tif");
+  AHSIData L0_data{src_file.string()};
+
+  const fs::path dark_a = coeff_path / fs::path("/dark_a.tif");
+  const fs::path dark_b = coeff_path / fs::path("/dark_b.tif");
+  const fs::path etalon_a = coeff_path / fs::path("/etalon_a.tif");
+  const fs::path etalon_b = coeff_path / fs::path("/etalon_b.tif");
+  const fs::path rel_a = coeff_path / fs::path("/rel_a.tif");
+  const fs::path rel_b = coeff_path / fs::path("/rel_b.tif");
+  const fs::path badpixel = coeff_path / fs::path("/badpixel.tif");
+};
+
+TEST_F(GF501ASWIRTest, DefectivePixelCorrectionSpectral) {
+  hsp::GF501A_DBC dbc;
+  dbc.load(dark_a.string(), dark_b.string());
+  hsp::DefectivePixelCorrectionSpectral dpc;
+  dpc.set_inpaint(hsp::Inpaint::MEAN_BLUR);
+  dpc.ksize = 3;
+  dpc.load(badpixel.string());
+
+  hsp::LineOutputIterator<uint16_t> it(dataset, 0);
+  for (auto&& frame : L0_data) {
+    *it++ = dpc(dbc(frame));
+  }
+}
+
 #ifdef HAVE_CUDA
 TEST_F(GF501AVNIRTest, VNIRProcessingCUDAv1) {
   hsp::cuda::UnaryOpCombo ops;

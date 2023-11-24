@@ -138,10 +138,25 @@ class GaussianFilter : public UnaryOperation<cv::Mat> {
   }
 };
 
+/**
+ * @brief 盲元修复算法名称。
+ *
+ */
+enum class Inpaint { TELEA, MEAN_BLUR };
+
+/**
+ * @brief 带掩膜（mask）的均值滤波。只修改mask对应点值为1的点。
+ *
+ * @param input 输入矩阵。
+ * @param ksize 均值滤波核尺寸。
+ * @param mask 掩膜。
+ * @return cv::Mat
+ */
 static cv::Mat meanBlur(cv::Mat input, int ksize, cv::Mat mask) {
-  cv::Mat blured;
+  cv::Mat blured, mask_cvt;
   cv::medianBlur(input, blured, ksize);
-  return input * (1 - mask) + blured * mask;
+  mask.convertTo(mask_cvt, input.type());
+  return input.mul(1 - mask_cvt) + blured.mul(mask_cvt);
 }
 
 /**
@@ -186,15 +201,36 @@ class DefectivePixelCorrectionSpatial {
     mask.step[0] = 0;
     mask.rows = img.rows;
     cv::Mat res;
-    cv::inpaint(img, mask, res, radius, cv::INPAINT_TELEA);
+    switch (inpaint_) {
+      case Inpaint::MEAN_BLUR:
+        res = meanBlur(img, ksize, mask);
+        break;
+      default:
+        cv::inpaint(img, mask, res, radius, cv::INPAINT_TELEA);
+    }
     return res;
   }
+
+  /**
+   * @brief 载入盲元列表。盲元列表为 n_samples * n_bands
+   * 尺寸的 Tiff 文件。1代表该位置为盲元，0代表不是盲元。
+   *
+   * @param filename 盲元列表路径。
+   */
   void load(const std::string& filename) {
     dpm_ = hsp::load_raster<uint8_t>(filename);
   }
 
+  /**
+   * @brief 设置盲元修复方法。
+   *
+   * @param value
+   */
+  void set_inpaint(Inpaint value) { inpaint_ = value; }
+
  private:
   cv::Mat dpm_;
+  Inpaint inpaint_{Inpaint::TELEA};
 };
 
 /**
@@ -219,16 +255,36 @@ class DefectivePixelCorrectionSpectral : public UnaryOperation<cv::Mat> {
  public:
   cv::Mat operator()(cv::Mat img) const override {
     cv::Mat res;
-    cv::inpaint(img, dpm_, res, radius, cv::INPAINT_TELEA);
+    switch (inpaint_) {
+      case Inpaint::MEAN_BLUR:
+        res = meanBlur(img, ksize, dpm_);
+        break;
+      default:
+        cv::inpaint(img, dpm_, res, radius, cv::INPAINT_TELEA);
+    }
     return res;
   }
 
+  /**
+   * @brief 载入盲元列表。盲元列表为 n_samples * n_bands
+   * 尺寸的 Tiff 文件。1代表该位置为盲元，0代表不是盲元。
+   *
+   * @param filename 盲元列表路径。
+   */
   void load(const std::string& filename) {
     dpm_ = hsp::load_raster<uint8_t>(filename);
   }
 
+  /**
+   * @brief 设置盲元修复方法。
+   *
+   * @param value
+   */
+  void set_inpaint(Inpaint value) { inpaint_ = value; }
+
  private:
   cv::Mat dpm_;
+  Inpaint inpaint_{Inpaint::TELEA};
 };
 
 /**
