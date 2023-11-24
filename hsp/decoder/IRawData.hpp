@@ -116,7 +116,7 @@ class IRawData {
     }
 
     /**
-     * @brief 判断2个迭代器是否相等。
+     * @brief 迭代器比较。
      *
      * @note 只判断帧序号，不判断是否指向相同的数据集。
      *
@@ -129,7 +129,7 @@ class IRawData {
     }
 
     /**
-     * @brief 判断2个迭代器是否不等。
+     * @brief 迭代器比较，判断是否不等。
      *
      * @note 只判断帧序号，不判断是否指向相同的数据集。
      *
@@ -142,11 +142,19 @@ class IRawData {
     }
 
     /**
-     * @brief 迭代器解引用操作。
+     * @brief 迭代器解引用。
      *
      * @return Tf
      */
     Tf operator*() const { return raw_->GetFrame(cur_); }
+
+    /**
+     * @brief 迭代器下标访问。
+     *
+     * @param i 帧偏移量，从当前迭代器所指的位置开始。
+     * @return Tf
+     */
+    Tf operator[](int i) const { return raw_->GetFrame(cur_ + i); }
 
     // Frame* operator->() const {
     //   return raw_->GetFrame(cur_);

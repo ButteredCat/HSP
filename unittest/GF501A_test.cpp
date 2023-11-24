@@ -86,7 +86,7 @@ TEST_F(GF501AVNIRTest, Traverse) {
   ASSERT_EQ(L0_data.n_bands(), 150);
 }
 
-TEST_F(GF501AVNIRTest, Iterator) {
+TEST_F(GF501AVNIRTest, IteratorIncrementAndCompare) {
   AHSIData::FrameIterator it(&L0_data, 0);
   auto beg = L0_data.begin();
   ASSERT_EQ(it, beg);
@@ -94,6 +94,12 @@ TEST_F(GF501AVNIRTest, Iterator) {
   ASSERT_NE(it, beg);
   ++beg;
   ASSERT_EQ(it, beg);
+}
+
+TEST_F(GF501AVNIRTest, IteratorOffsetDereference) {
+  AHSIData::FrameIterator it(&L0_data, 0);
+  auto frame = it[5];
+  SUCCEED();
 }
 
 TEST_F(GF501AVNIRTest, L0Decoding) {

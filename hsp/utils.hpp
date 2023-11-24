@@ -20,7 +20,7 @@
 #include <string>
 #include <vector>
 
-// Opencv
+// OpenCV
 #include <opencv2/core.hpp>
 
 // hsp
