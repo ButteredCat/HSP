@@ -45,8 +45,8 @@ class GF501AVNIRTest : public ::testing::Test {
     ASSERT_NE(nullptr, poDriver);
     papszOptions = CSLSetNameValue(papszOptions, "INTERLEAVE", "BAND");
     dataset = GDALDataset::FromHandle(poDriver->Create(
-        dst_file.c_str(), L0_data.n_samples(), L0_data.n_lines(),
-        L0_data.n_bands(), GDT_UInt16, papszOptions));
+        dst_file.c_str(), L0_data.samples(), L0_data.lines(),
+        L0_data.bands(), GDT_UInt16, papszOptions));
     ASSERT_NE(nullptr, dataset);
   }
 
@@ -81,9 +81,9 @@ class GF501AVNIRTest : public ::testing::Test {
 
 TEST_F(GF501AVNIRTest, Traverse) {
   ASSERT_EQ(L0_data.sensor_type(), AHSIData::SensorType::VNIR);
-  ASSERT_EQ(L0_data.n_samples(), 2048);
-  ASSERT_EQ(L0_data.n_lines(), 2412);
-  ASSERT_EQ(L0_data.n_bands(), 150);
+  ASSERT_EQ(L0_data.samples(), 2048);
+  ASSERT_EQ(L0_data.lines(), 2412);
+  ASSERT_EQ(L0_data.bands(), 150);
 }
 
 TEST_F(GF501AVNIRTest, IteratorIncrementAndCompare) {
@@ -150,8 +150,8 @@ class GF501ASWIRTest : public ::testing::Test {
     ASSERT_NE(nullptr, poDriver);
     papszOptions = CSLSetNameValue(papszOptions, "INTERLEAVE", "BAND");
     dataset = GDALDataset::FromHandle(poDriver->Create(
-        dst_file.c_str(), L0_data.n_samples(), L0_data.n_lines(),
-        L0_data.n_bands(), GDT_UInt16, papszOptions));
+        dst_file.c_str(), L0_data.samples(), L0_data.lines(),
+        L0_data.bands(), GDT_UInt16, papszOptions));
     ASSERT_NE(nullptr, dataset);
   }
 

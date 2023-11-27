@@ -67,21 +67,21 @@ class IRawData {
    *
    * @return int
    */
-  int n_samples() const { return n_samples_; }
+  int samples() const { return n_samples_; }
 
   /**
    * @brief 原始数据包含的行（帧）数。
    *
    * @return int
    */
-  int n_lines() const { return n_lines_; }
+  int lines() const { return n_lines_; }
 
   /**
    * @brief 原始数据包含的波段数。
    *
    * @return int
    */
-  int n_bands() const { return n_bands_; }
+  int bands() const { return n_bands_; }
 
   /**
    * @brief 帧迭代器。对迭代器解引用后，得到 Tf 类型的一帧影像。
