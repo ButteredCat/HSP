@@ -293,10 +293,7 @@ class DefectivePixelCorrectionSpectral : public UnaryOperation<cv::Mat> {
  */
 class DefectivePixelCorrection : public UnaryOperation<cv::Mat> {
  public:
-  cv::Mat operator()(cv::Mat img) const override {
-    cv::Mat res;
-    return res;
-  }
+  cv::Mat operator()(cv::Mat img) const override { return img; }
 
   void load(const std::string& filename) {
     dpm_ = hsp::load_raster<uint8_t>(filename);

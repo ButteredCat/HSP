@@ -12,7 +12,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
 find_package(GDAL 2.3 REQUIRED)
 find_package(OpenCV 4 REQUIRED)
-find_package(Boost 1.71 COMPONENTS filesystem program_options REQUIRED)
+find_package(Boost 1.71 COMPONENTS filesystem REQUIRED)
 find_package(GTest)
 
 include_directories(
