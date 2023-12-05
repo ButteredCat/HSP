@@ -31,10 +31,7 @@ namespace hsp {
 template <typename Tf = cv::Mat>
 class IRawData {
  public:
-  /**
-   * @brief 原始数据路径。
-   *
-   */
+  /** @brief 原始数据路径。 */
   const std::string filename;
 
  public:
@@ -186,10 +183,15 @@ class IRawData {
   FrameIterator end() const { return FrameIterator(this, n_lines_); }
 
  protected:
+  /** @brief 如果已经运行Traverse()函数，值应设为true，否则为false。 */
   bool is_traversed_ = false;
+  /** @brief 原始数据每波段包含的像元数。应在Traverse()函数中设置。 */
   int n_samples_ = 0;
+  /** @brief 原始数据包含的影像波段数。应在Traverse()函数中设置。 */
   int n_bands_ = 0;
+  /** @brief 原始数据包含的影像行数。应在Traverse()函数中设置。 */
   int n_lines_ = 0;
+  /** @brief 用于存储单帧影像数据。 */
   cv::Mat img_;
 };
 

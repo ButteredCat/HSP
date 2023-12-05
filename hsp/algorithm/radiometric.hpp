@@ -142,7 +142,10 @@ class GaussianFilter : public UnaryOperation<cv::Mat> {
  * @brief 盲元修复算法名称。
  *
  */
-enum class Inpaint { TELEA, MEAN_BLUR };
+enum class Inpaint {
+  TELEA,    /**< 调用 OpenCV 中的 cv::INPAINT_TELEA 算法  */
+  MEAN_BLUR /**< 传统的8邻域差值算法  */
+};
 
 /**
  * @brief 带掩膜（mask）的均值滤波。只修改mask对应点值为1的点。
@@ -163,9 +166,10 @@ static cv::Mat meanBlur(cv::Mat input, int ksize, cv::Mat mask) {
  * @brief 空间维盲元修复算法。
  *
  * @details
- * 内部调用OpenCV中的`inpaint`函数实现，使用`cv::INPAINT_TELEA`算法。
- * 使用示例如下：
- * \code{.cpp}
+ * 可选择使用`cv::INPAINT_TELEA`或8邻域均值算法修复盲元。
+ * 
+ * @par Sample
+ * @code{.cpp}
  *  hsp::DefectivePixelCorrectionSpatial dpc;
  *  dpc.load(badpixel);
  *
@@ -176,7 +180,7 @@ static cv::Mat meanBlur(cv::Mat input, int ksize, cv::Mat mask) {
  *  // 用 boost::counting_iterator 生成连续的波段号
  *  std::transform(band_it, band_it_end, boost::counting_iterator<int>(0),
  *                 band_out_it, dpc);
- * \endcode
+ * @endcode
  *
  * @note
  * 配合波段迭代器使用，需要同时给出波段号。由于是二元操作，所以不能放入hsp::UnaryOpCombo。
@@ -234,7 +238,7 @@ class DefectivePixelCorrectionSpatial {
 };
 
 /**
- * @brief 光谱维盲元修复算法。
+ * @brief 光谱维盲元修复算法。可选择使用`cv::INPAINT_TELEA`或8邻域均值算法修复盲元。
  *
  * @note 配合行迭代器使用。
  */

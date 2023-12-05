@@ -54,22 +54,21 @@ struct AHSIFrame {
  */
 class AHSIData : public IRawData<AHSIFrame> {
  public:
-  /**
-   * @brief 传感器类型。
-   *
-   */
-  enum class SensorType { SWIR = 1, VNIR = 2 };
+  /** @brief 传感器类型。 */
+  enum class SensorType {
+    SWIR = 1, /**< 短波红外相机 */
+    VNIR = 2  /**< 可见近红外相机 */
+  };
 
-  /**
-   * @brief 压缩模式。
-   *
-   */
-  enum class Compress { Lossless = 0, Lossy8 = 1, Lossy4 = 2, Direct = 3 };
+  /** @brief 压缩模式。*/
+  enum class Compress {
+    Lossless = 0, /**< 无损压缩 */
+    Lossy8 = 1,   /**< 有损压缩8:1 */
+    Lossy4 = 2,   /**< 有损压缩4:1 */
+    Direct = 3    /**< 直通数据 */
+  };
 
-  /**
-   * @brief 帧引导头。
-   *
-   */
+  /** @brief 帧引导头。 */
   const char leading_bytes[4] = {0x09, 0x15, static_cast<char>(0xC0), 0x00};
 
  public:
