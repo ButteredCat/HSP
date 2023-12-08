@@ -13,6 +13,7 @@
 
 // C++ Standard
 #include <fstream>
+#include <numeric>
 #include <string>
 #include <vector>
 
@@ -167,7 +168,7 @@ static cv::Mat meanBlur(cv::Mat input, int ksize, cv::Mat mask) {
  *
  * @details
  * 可选择使用`cv::INPAINT_TELEA`或8邻域均值算法修复盲元。
- * 
+ *
  * @par Sample
  * @code{.cpp}
  *  hsp::DefectivePixelCorrectionSpatial dpc;
@@ -238,7 +239,8 @@ class DefectivePixelCorrectionSpatial {
 };
 
 /**
- * @brief 光谱维盲元修复算法。可选择使用`cv::INPAINT_TELEA`或8邻域均值算法修复盲元。
+ * @brief
+ * 光谱维盲元修复算法。可选择使用`cv::INPAINT_TELEA`或8邻域均值算法修复盲元。
  *
  * @note 配合行迭代器使用。
  */
@@ -302,6 +304,7 @@ class DefectivePixelCorrection : public UnaryOperation<cv::Mat> {
   void load(const std::string& filename) {
     dpm_ = hsp::load_raster<uint8_t>(filename);
     find_consecutive();
+    auto w = get_weights(5, 7);
   }
 
   /**
@@ -326,6 +329,30 @@ class DefectivePixelCorrection : public UnaryOperation<cv::Mat> {
   cv::Mat col_label_;
 
  private:
+  /**
+   * @brief 给出反距离权重矩阵
+   *
+   * @param rows
+   * @param cols
+   * @return cv::Mat
+   */
+  cv::Mat get_weights(int rows, int cols) {
+    cv::Point center(rows / 2, cols / 2);
+    cv::Mat1d col_idx = cv::Mat::zeros(1, cols, cv::DataType<double>::type);
+    std::iota(col_idx.begin(), col_idx.end(), 0);
+    cv::Mat col_idx_mat = cv::repeat(col_idx, rows, 1);
+    cv::Mat1d row_idx = cv::Mat::zeros(rows, 1, cv::DataType<double>::type);
+    std::iota(row_idx.begin(), row_idx.end(), 0);
+    cv::Mat row_idx_mat = cv::repeat(row_idx, 1, cols);
+
+    const double epsilon = 1e-24;
+    cv::Mat distance;
+    cv::magnitude(center.x - row_idx_mat, center.y - col_idx_mat, distance);
+    cv::Mat inv_d = 1 / (distance + epsilon);
+    inv_d.at<double>(center.x, center.y) = 0;
+    return inv_d / cv::sum(inv_d)[0];
+  }
+
   void find_consecutive() {
     using LabelType = uint16_t;
     row_label_ = cv::Mat::zeros(dpm_.size(), cv::DataType<LabelType>::type);
