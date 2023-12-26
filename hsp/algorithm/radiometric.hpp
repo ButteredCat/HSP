@@ -144,23 +144,24 @@ class GaussianFilter : public UnaryOperation<cv::Mat> {
  *
  */
 enum class Inpaint {
-  TELEA,    /**< 调用 OpenCV 中的 cv::INPAINT_TELEA 算法  */
-  MEAN_BLUR /**< 传统的8邻域差值算法  */
+  TELEA,                 /**< 调用 OpenCV 中的 cv::INPAINT_TELEA 算法  */
+  NEIGHBORHOOD_AVERAGING /**< 传统的8邻域差值算法  */
 };
 
 /**
- * @brief 带掩膜（mask）的均值滤波。只修改mask对应点值为1的点。
+ * @brief 8领域插值。只修改mask对应点值为1的点。
  *
  * @param input 输入矩阵。
- * @param ksize 均值滤波核尺寸。
+ * @param output 输出矩阵。
  * @param mask 掩膜。
- * @return cv::Mat
  */
-static cv::Mat meanBlur(cv::Mat input, int ksize, cv::Mat mask) {
-  cv::Mat blured, mask_cvt;
-  cv::medianBlur(input, blured, ksize);
+static void neighborhood_averaging(cv::Mat input, cv::Mat mask,
+                                   cv::Mat output) {
+  cv::Mat kernel = (cv::Mat_<float>(3, 3) << 1, 1, 1, 1, 0, 1, 1, 1, 1) / 8;
+  cv::Mat filtered, mask_cvt;
+  cv::filter2D(input, filtered, -1, kernel);
   mask.convertTo(mask_cvt, input.type());
-  return input.mul(1 - mask_cvt) + blured.mul(mask_cvt);
+  output = input.mul(1 - mask_cvt) + filtered.mul(mask_cvt);
 }
 
 /**
@@ -194,12 +195,6 @@ class DefectivePixelCorrectionSpatial {
    */
   double radius{3.0};
 
-  /**
-   * @brief 均值平滑算法中的核尺寸。
-   *
-   */
-  int ksize{3};
-
  public:
   cv::Mat operator()(cv::Mat img, int band) const {
     cv::Mat mask = dpm_.row(band);
@@ -207,8 +202,8 @@ class DefectivePixelCorrectionSpatial {
     mask.rows = img.rows;
     cv::Mat res;
     switch (inpaint_) {
-      case Inpaint::MEAN_BLUR:
-        res = meanBlur(img, ksize, mask);
+      case Inpaint::NEIGHBORHOOD_AVERAGING:
+        neighborhood_averaging(img, mask, res);
         break;
       default:
         cv::inpaint(img, mask, res, radius, cv::INPAINT_TELEA);
@@ -252,18 +247,12 @@ class DefectivePixelCorrectionSpectral : public UnaryOperation<cv::Mat> {
    */
   double radius{3.0};
 
-  /**
-   * @brief 均值平滑算法中的核尺寸。
-   *
-   */
-  int ksize{3};
-
  public:
   cv::Mat operator()(cv::Mat img) const override {
     cv::Mat res;
     switch (inpaint_) {
-      case Inpaint::MEAN_BLUR:
-        res = meanBlur(img, ksize, dpm_);
+      case Inpaint::NEIGHBORHOOD_AVERAGING:
+        neighborhood_averaging(img, dpm_, res);
         break;
       default:
         cv::inpaint(img, dpm_, res, radius, cv::INPAINT_TELEA);

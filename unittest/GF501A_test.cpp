@@ -44,9 +44,9 @@ class GF501AVNIRTest : public ::testing::Test {
     auto poDriver = GetGDALDriverManager()->GetDriverByName("GTiff");
     ASSERT_NE(nullptr, poDriver);
     papszOptions = CSLSetNameValue(papszOptions, "INTERLEAVE", "BAND");
-    dataset = GDALDataset::FromHandle(poDriver->Create(
-        dst_file.c_str(), L0_data.samples(), L0_data.lines(),
-        L0_data.bands(), GDT_UInt16, papszOptions));
+    dataset = GDALDataset::FromHandle(
+        poDriver->Create(dst_file.c_str(), L0_data.samples(), L0_data.lines(),
+                         L0_data.bands(), GDT_UInt16, papszOptions));
     ASSERT_NE(nullptr, dataset);
   }
 
@@ -149,9 +149,9 @@ class GF501ASWIRTest : public ::testing::Test {
     auto poDriver = GetGDALDriverManager()->GetDriverByName("GTiff");
     ASSERT_NE(nullptr, poDriver);
     papszOptions = CSLSetNameValue(papszOptions, "INTERLEAVE", "BAND");
-    dataset = GDALDataset::FromHandle(poDriver->Create(
-        dst_file.c_str(), L0_data.samples(), L0_data.lines(),
-        L0_data.bands(), GDT_UInt16, papszOptions));
+    dataset = GDALDataset::FromHandle(
+        poDriver->Create(dst_file.c_str(), L0_data.samples(), L0_data.lines(),
+                         L0_data.bands(), GDT_UInt16, papszOptions));
     ASSERT_NE(nullptr, dataset);
   }
 
@@ -189,8 +189,7 @@ TEST_F(GF501ASWIRTest, DefectivePixelCorrectionSpectral) {
   hsp::GF501A_DBC dbc;
   dbc.load(dark_a.string(), dark_b.string());
   hsp::DefectivePixelCorrectionSpectral dpc;
-  dpc.set_inpaint(hsp::Inpaint::MEAN_BLUR);
-  dpc.ksize = 3;
+  dpc.set_inpaint(hsp::Inpaint::NEIGHBORHOOD_AVERAGING);
   dpc.load(badpixel.string());
 
   hsp::LineOutputIterator<uint16_t> it(dataset, 0);
