@@ -145,7 +145,7 @@ class GaussianFilter : public UnaryOperation<cv::Mat> {
  */
 enum class Inpaint {
   TELEA,                 /**< 调用 OpenCV 中的 cv::INPAINT_TELEA 算法  */
-  NEIGHBORHOOD_AVERAGING /**< 传统的8邻域差值算法  */
+  NEIGHBORHOOD_AVERAGING /**< 8邻域插值算法  */
 };
 
 /**
@@ -155,13 +155,12 @@ enum class Inpaint {
  * @param output 输出矩阵。
  * @param mask 掩膜。
  */
-static void neighborhood_averaging(cv::Mat input, cv::Mat mask,
-                                   cv::Mat output) {
+static cv::Mat neighborhood_averaging(cv::Mat input, cv::Mat mask) {
   cv::Mat kernel = (cv::Mat_<float>(3, 3) << 1, 1, 1, 1, 0, 1, 1, 1, 1) / 8;
   cv::Mat filtered, mask_cvt;
   cv::filter2D(input, filtered, -1, kernel);
   mask.convertTo(mask_cvt, input.type());
-  output = input.mul(1 - mask_cvt) + filtered.mul(mask_cvt);
+  return input.mul(1 - mask_cvt) + filtered.mul(mask_cvt);
 }
 
 /**
@@ -203,7 +202,7 @@ class DefectivePixelCorrectionSpatial {
     cv::Mat res;
     switch (inpaint_) {
       case Inpaint::NEIGHBORHOOD_AVERAGING:
-        neighborhood_averaging(img, mask, res);
+        res = neighborhood_averaging(img, mask);
         break;
       default:
         cv::inpaint(img, mask, res, radius, cv::INPAINT_TELEA);
@@ -252,7 +251,7 @@ class DefectivePixelCorrectionSpectral : public UnaryOperation<cv::Mat> {
     cv::Mat res;
     switch (inpaint_) {
       case Inpaint::NEIGHBORHOOD_AVERAGING:
-        neighborhood_averaging(img, dpm_, res);
+        res = neighborhood_averaging(img, dpm_);
         break;
       default:
         cv::inpaint(img, dpm_, res, radius, cv::INPAINT_TELEA);
