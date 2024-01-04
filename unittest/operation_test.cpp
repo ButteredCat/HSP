@@ -112,7 +112,7 @@ TEST(DPCTest, FindConsecutive) {
   if (!fs::exists(work_dir)) {
     fs::create_directory(work_dir);
   }
-  hsp::DefectivePixelCorrection dpc;
+  hsp::DefectivePixelCorrectionIDW dpc;
   dpc.load(badpixel.string());
   cv::imwrite((work_dir / fs::path("col_labeled.tif")).string(),
               dpc.get_col_label());

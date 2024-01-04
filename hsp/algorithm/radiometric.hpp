@@ -282,17 +282,54 @@ class DefectivePixelCorrectionSpectral : public UnaryOperation<cv::Mat> {
 };
 
 /**
- * @brief 对连续盲元进行特殊处理的盲元修复算法，在光谱维进行盲元修复。
+ * @brief 基于反距离权重法（Inverse Distance
+ * Weighting）的盲元修复算法，对连续盲元进行特殊处理。
+ *
+ * @note 配合行迭代器使用。
  *
  */
-class DefectivePixelCorrection : public UnaryOperation<cv::Mat> {
+class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
  public:
-  cv::Mat operator()(cv::Mat img) const override { return img; }
+  cv::Mat operator()(cv::Mat img) const override {
+    cv::Mat padded;
+    cv::copyMakeBorder(img, padded, max_win_spectral_, max_win_spectral_,
+                       max_win_spatial_, max_win_spatial_, cv::BORDER_CONSTANT,
+                       0);
+    for (auto&& defective_pixel : dp_list_) {
+      auto win_spatial = row_label_.at<LabelType>(defective_pixel);
+      auto win_spectral = col_label_.at<LabelType>(defective_pixel);
+      cv::Mat idw(inverse_weights_table_,
+                  cv::Range(max_win_spectral_ - win_spectral,
+                            max_win_spectral_ + win_spectral + 1),
+                  cv::Range(max_win_spatial_ - win_spatial,
+                            max_win_spatial_ + win_spatial + 1));
+      cv::Mat window(
+          padded,
+          cv::Range(max_win_spectral_ + defective_pixel.y - win_spectral,
+                    max_win_spectral_ + defective_pixel.y + win_spectral + 1),
+          cv::Range(max_win_spatial_ + defective_pixel.x - win_spatial,
+                    max_win_spatial_ + defective_pixel.x + win_spatial + 1));
+      cv::Mat1d window_1d;
+      window.convertTo(window_1d, cv::DataType<double>::type);
+      auto prod = window_1d.mul(idw / cv::sum(idw)[0]);
+
+      img.at<uint16_t>(defective_pixel) =
+          static_cast<uint16_t>(cv::sum(prod)[0]);
+    }
+    return img;
+  }
 
   void load(const std::string& filename) {
     dpm_ = hsp::load_raster<uint8_t>(filename);
+    construct_dp_list();
     find_consecutive();
-    auto w = get_weights(5, 7);
+    double max;
+    cv::minMaxLoc(row_label_, nullptr, &max);
+    max_win_spatial_ = static_cast<int>(max);
+    cv::minMaxLoc(col_label_, nullptr, &max);
+    max_win_spectral_ = static_cast<int>(max);
+    inverse_weights_table_ = get_inverse_weights_table(
+        2 * max_win_spectral_ + 1, 2 * max_win_spatial_ + 1);
   }
 
   /**
@@ -312,19 +349,38 @@ class DefectivePixelCorrection : public UnaryOperation<cv::Mat> {
   cv::Mat get_col_label() const { return col_label_; }
 
  private:
+  using LabelType = uint16_t;
   cv::Mat dpm_;
   cv::Mat row_label_;
   cv::Mat col_label_;
+  cv::Mat inverse_weights_table_;
+  std::vector<cv::Point> dp_list_;
+  int max_win_spatial_ = 1;
+  int max_win_spectral_ = 1;
 
  private:
   /**
-   * @brief 给出反距离权重矩阵
+   * @brief 将盲元矩阵转为盲元列表
    *
-   * @param rows
-   * @param cols
+   */
+  void construct_dp_list() {
+    for (int i = 0; i < dpm_.rows; ++i) {
+      for (int j = 0; j < dpm_.cols; ++j) {
+        if (dpm_.at<uint8_t>(i, j) == 1) {
+          dp_list_.emplace_back(j, i);
+        }
+      }
+    }
+  }
+
+  /**
+   * @brief 按照给定尺寸，给出反距离权重矩阵。
+   *
+   * @param rows 矩阵行数
+   * @param cols 矩阵列数
    * @return cv::Mat
    */
-  cv::Mat get_weights(int rows, int cols) {
+  cv::Mat1d get_inverse_weights_table(int rows, int cols) {
     cv::Point center(rows / 2, cols / 2);
     cv::Mat1d col_idx = cv::Mat::zeros(1, cols, cv::DataType<double>::type);
     std::iota(col_idx.begin(), col_idx.end(), 0);
@@ -333,16 +389,17 @@ class DefectivePixelCorrection : public UnaryOperation<cv::Mat> {
     std::iota(row_idx.begin(), row_idx.end(), 0);
     cv::Mat row_idx_mat = cv::repeat(row_idx, 1, cols);
 
-    const double epsilon = 1e-24;
-    cv::Mat distance;
+    cv::Mat1d distance;
     cv::magnitude(center.x - row_idx_mat, center.y - col_idx_mat, distance);
-    cv::Mat inv_d = 1 / (distance + epsilon);
+    const double epsilon = 1e-24;
+    distance.at<double>(center.x, center.y) = epsilon;
+    cv::Mat1d inv_d = 1 / distance;
     inv_d.at<double>(center.x, center.y) = 0;
-    return inv_d / cv::sum(inv_d)[0];
+    return inv_d;
+    // return inv_d / cv::sum(inv_d)[0];
   }
 
   void find_consecutive() {
-    using LabelType = uint16_t;
     row_label_ = cv::Mat::zeros(dpm_.size(), cv::DataType<LabelType>::type);
     col_label_ = cv::Mat::zeros(dpm_.size(), cv::DataType<LabelType>::type);
     // row label
