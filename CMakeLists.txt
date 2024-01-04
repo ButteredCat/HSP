@@ -14,6 +14,7 @@ find_package(GDAL 2.3 REQUIRED)
 find_package(OpenCV 4 REQUIRED)
 find_package(Boost 1.71 COMPONENTS filesystem REQUIRED)
 find_package(GTest)
+find_package(OpenMP)
 
 include_directories(
     ${GDAL_INCLUDE_DIR}

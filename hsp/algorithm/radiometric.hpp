@@ -295,7 +295,9 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
     cv::copyMakeBorder(img, padded, max_win_spectral_, max_win_spectral_,
                        max_win_spatial_, max_win_spatial_, cv::BORDER_CONSTANT,
                        0);
-    for (auto&& defective_pixel : dp_list_) {
+    // #pragma omp parallel for
+    for (int i = 0; i < dp_list_.size(); ++i) {
+      const cv::Point& defective_pixel = dp_list_[i];
       auto win_spatial = row_label_.at<LabelType>(defective_pixel);
       auto win_spectral = col_label_.at<LabelType>(defective_pixel);
       cv::Mat idw(inverse_weights_table_,
