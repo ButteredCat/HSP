@@ -48,11 +48,11 @@ class DarkBackgroundCorrection : public UnaryOperation<cv::Mat> {
    * @param filename 系数文件路径，支持栅格数据和文本文件
    */
   void load(const std::string& filename) {
-    if (gdal::IsRasterDataset(filename.c_str())) {
-      m_ = load_raster<T>(filename.c_str());
-    } else {
-      m_ = load_text<T>(filename.c_str());
-    }
+    // if (gdal::IsRasterDataset(filename.c_str())) {
+    m_ = load_raster<T>(filename.c_str());
+    // } else {
+    //   m_ = load_text<T>(filename.c_str());
+    // }
   }
 
  private:

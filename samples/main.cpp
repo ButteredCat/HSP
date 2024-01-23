@@ -14,6 +14,7 @@
 
 // Boost
 #include <boost/filesystem.hpp>
+#include <boost/json/src.hpp>
 
 // OpenCV
 #include <opencv2/imgcodecs.hpp>
@@ -23,65 +24,69 @@
 #include "../hsp/algorithm/radiometric.hpp"
 #include "../hsp/core.hpp"
 #include "../hsp/decoder/AHSIData.hpp"
+#include "./order_parser.hpp"
 
+using parser::Coeff;
+using parser::Input;
+using parser::Order;
 using std::chrono::duration_cast;
 using std::chrono::microseconds;
 using std::chrono::system_clock;
 
 namespace fs = boost::filesystem;
 
-const std::string filename =
-    "/home/xiaoyc/dataset/hsp_unittest/GF501A/"
-    "GF5A_AHSI_SW_20230722_354_621_L00000041058.DAT";
-const std::string dstfile =
-    "/home/xiaoyc/dataset/results/"
-    "GF5A_AHSI_SW_20230722_354_621_L00000041058_subdark_IDW.tif";
-const std::string dark_a =
-    "/home/xiaoyc/dataset/hsp_unittest/GF501A/coeff/SWIR/dark_a.tif";
-const std::string dark_b =
-    "/home/xiaoyc/dataset/hsp_unittest/GF501A/coeff/SWIR/dark_b.tif";
-const std::string badpixel =
-    "/home/xiaoyc/dataset/hsp_unittest/GF501A/coeff/SWIR/badpixel.tif";
+void img_process(Input input, Coeff coeff, std::string output) {}
 
-int main(int argc, char* argv[]) {
-  using DataType = uint16_t;
-  // try {
-  GDALAllRegister();
-
-  auto start = system_clock::now();
-
-  // 建立待处理数据的行输入迭代器
-  // auto src_dataset = GDALDatasetUniquePtr(
-  //     GDALDataset::FromHandle(GDALOpen(filename.c_str(), GA_ReadOnly)));
-  // if (!src_dataset) {
-  //   return -1;
-  // }
-  // hsp::LineInputIterator<uint16_t> beg(src_dataset.get(), 0),
-  //     end(src_dataset.get());
-
-  hsp::AHSIData L0_data(filename);
+void raw_process(Input input, Coeff coeff, std::string output) {
+  hsp::AHSIData L0_data(input.filename);
   L0_data.Traverse();
 
   auto poDriver = GetGDALDriverManager()->GetDriverByName("GTiff");
   if (!poDriver) {
-    return -1;
+    return;
   }
   auto dst_dataset =
       GDALDatasetUniquePtr(GDALDataset::FromHandle(poDriver->Create(
-          dstfile.c_str(), L0_data.samples(), L0_data.lines(), L0_data.bands(),
+          output.c_str(), L0_data.samples(), L0_data.lines(), L0_data.bands(),
           hsp::gdal::DataType<uint16_t>::type(), nullptr)));
   if (!dst_dataset) {
-    return -1;
+    return;
   }
   hsp::LineOutputIterator<uint16_t> output_it(dst_dataset.get(), 0);
 
   hsp::GF501A_DBC dbc;
-  dbc.load(dark_a, dark_b);
+  dbc.load(coeff.dark_a, coeff.dark_b);
   hsp::DefectivePixelCorrectionIDW dpc;
-  dpc.load(badpixel);
+  dpc.load(coeff.badpixel);
 
   for (auto&& frame : L0_data) {
     *output_it++ = dpc(dbc(frame));
+  }
+}
+
+int main(int argc, char* argv[]) {
+  // try {
+  if (argc < 2) {
+    std::cerr << "no input order\n";
+    return -1;
+  }
+  auto start = system_clock::now();
+  std::ifstream ifs(argv[1]);
+  std::string input(std::istreambuf_iterator<char>(ifs), {});
+  json::parse_options opt;
+  opt.allow_comments = true;
+  opt.allow_trailing_commas = true;
+  Order order = json::value_to<Order>(json::parse(input, {}, opt));
+
+  GDALAllRegister();
+
+#pragma omp parallel for
+  for (int i = 0; i < order.inputs.size(); ++i) {
+    if (order.inputs[i].is_raw) {
+      raw_process(order.inputs[i], order.coeff, order.outputs.at(i));
+    } else {
+      img_process(order.inputs[i], order.coeff, order.outputs.at(i));
+    }
   }
 
   // 输出计算耗时
