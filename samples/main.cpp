@@ -35,7 +35,34 @@ using std::chrono::system_clock;
 
 namespace fs = boost::filesystem;
 
-void img_process(Input input, Coeff coeff, std::string output) {}
+void img_process(Input input, Coeff coeff, std::string output) {
+  auto src_dataset = GDALDatasetUniquePtr(
+      GDALDataset::FromHandle(GDALOpen(input.filename.c_str(), GA_ReadOnly)));
+  int n_samples = src_dataset->GetRasterXSize();
+  int n_lines = src_dataset->GetRasterYSize();
+  int n_bands = src_dataset->GetRasterCount();
+
+  auto poDriver = GetGDALDriverManager()->GetDriverByName("GTiff");
+  auto dst_dataset = GDALDatasetUniquePtr(GDALDataset::FromHandle(
+      poDriver->Create(output.c_str(), n_samples, n_lines, n_bands,
+                       hsp::gdal::DataType<uint16_t>::type(), nullptr)));
+
+  hsp::LineInputIterator<uint16_t> beg(src_dataset.get(), 0),
+      end(src_dataset.get());
+  hsp::LineOutputIterator<uint16_t> obeg(dst_dataset.get(), 0);
+  auto dbc = hsp::make_op<hsp::DarkBackgroundCorrection<uint16_t>>();
+  dbc->load(coeff.dark_b);
+  auto etalon = hsp::make_op<hsp::NonUniformityCorrection<double, double>>();
+  etalon->load(coeff.etalon_a, coeff.etalon_b);
+  auto nuc = hsp::make_op<hsp::NonUniformityCorrection<uint16_t, double>>();
+  nuc->load(coeff.rel_a, coeff.rel_b);
+  auto dpc = hsp::make_op<hsp::DefectivePixelCorrectionIDW>();
+  dpc->load(coeff.badpixel);
+
+  hsp::UnaryOpCombo ops;
+  ops.add(dbc).add(etalon).add(nuc).add(dpc);
+  std::transform(beg, end, obeg, ops);
+}
 
 void raw_process(Input input, Coeff coeff, std::string output) {
   hsp::AHSIData L0_data(input.filename);
