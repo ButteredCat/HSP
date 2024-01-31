@@ -4,6 +4,12 @@ set(TARGET_NAME hsp)
 
 project(${TARGET_NAME})
 
+# 强制让 vs 将源文件以 utf-8 格式解码
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
+    add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+endif()
+
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
