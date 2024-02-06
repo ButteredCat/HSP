@@ -290,12 +290,26 @@ class DefectivePixelCorrectionSpectral : public UnaryOperation<cv::Mat> {
  */
 class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
  public:
+   using ComputingType = double;
+  ComputingType NaN = std::numeric_limits<ComputingType>::quiet_NaN();
+   ComputingType inf = std::numeric_limits<ComputingType>::infinity();
+
+ public:
   cv::Mat operator()(cv::Mat img) const override {
-    cv::Mat padded;
-    cv::copyMakeBorder(img, padded, max_win_spectral_, max_win_spectral_,
-                       max_win_spatial_, max_win_spatial_, cv::BORDER_CONSTANT,
-                       0);
-    // #pragma omp parallel for
+    cv::Mat1d padded;
+    if (img.type() != cv::DataType<ComputingType>::type) {
+      cv::Mat1d img_1d;
+      img.convertTo(img_1d, cv::DataType<ComputingType>::type);
+      cv::copyMakeBorder(img_1d, padded, max_win_spectral_, max_win_spectral_,
+                         max_win_spatial_, max_win_spatial_,
+                         cv::BORDER_CONSTANT, NaN);
+    } else {
+      cv::copyMakeBorder(img, padded, max_win_spectral_, max_win_spectral_,
+                         max_win_spatial_, max_win_spatial_,
+                         cv::BORDER_CONSTANT, NaN);
+    }
+
+//#pragma omp parallel for
     for (int i = 0; i < dp_list_.size(); ++i) {
       const cv::Point& defective_pixel = dp_list_[i];
       auto win_spatial = row_label_.at<LabelType>(defective_pixel);
@@ -311,12 +325,49 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
                     max_win_spectral_ + defective_pixel.y + win_spectral + 1),
           cv::Range(max_win_spatial_ + defective_pixel.x - win_spatial,
                     max_win_spatial_ + defective_pixel.x + win_spatial + 1));
-      cv::Mat1d window_1d;
-      window.convertTo(window_1d, cv::DataType<double>::type);
-      auto prod = window_1d.mul(idw / cv::sum(idw)[0]);
+      
 
-      img.at<uint16_t>(defective_pixel) =
-          static_cast<uint16_t>(cv::sum(prod)[0]);
+      auto mask = cv::Mat(window == window);
+      bool over_threshold = false;
+      double mean = cv::mean(window, mask)[0];
+      for (int j = 0; j < window.cols; ++j) {
+        cv::Mat col_mask = mask.col(j);
+        cv::Mat col_window = window.col(j);
+        cv::Mat col_mean, col_stddev;
+        cv::meanStdDev(col_window, col_mean, col_stddev, col_mask);
+        if (col_stddev.at<double>(0,0) > 0.1 * mean) {
+          over_threshold = true;
+          break;
+        }
+      }
+      if (over_threshold) {
+      
+      }
+      //cv::Mat1f window_1f;
+      //window.convertTo(window_1f, cv::DataType<float>::type);
+      //cv::patchNaNs(window_1f, 0.0);
+      cv::Mat1d window_patched = window.clone();
+      //window_1f.convertTo(window_patched, cv::DataType<ComputingType>::type);
+      window_patched.setTo(0.0, window != window);
+      auto prod = window_patched.mul(idw / cv::sum(idw)[0]);
+
+      auto val = static_cast<uint16_t>(cv::sum(prod)[0]);
+      cv::Point window_center(window.rows/2, window.cols/2);
+      window.at<ComputingType>(window_center.x, window_center.y) = val;
+      cv::Mat1d spb;
+      cv::divide(cv::repeat(window.col(window_center.y), 1, window.cols), window, spb);
+      //cv::Mat inf_mask = (spb == std::numeric_limits<ComputingType>::infinity());
+      spb.setTo(NaN, spb == inf);
+      spb.row(spb.rows / 2) = NaN;
+      window.setTo(NaN, spb != spb);
+      auto TA1 = isoutlier(spb);
+      auto TA2 = isoutlier(window);
+      cv::Mat spb_vec = spb.reshape(0, spb.rows * spb.cols);
+      auto TA3 = isoutlier(spb_vec).reshape(0, spb.rows);
+      spb.setTo(NaN, TA1 + TA2 + TA3 != 0);
+      spb.setTo(NaN, spb == 0);
+      auto mean_stddev = meanStdDev(spb);
+      img.at<uint16_t>(defective_pixel) = val;
     }
     return img;
   }
@@ -391,14 +442,11 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
     std::iota(row_idx.begin(), row_idx.end(), 0);
     cv::Mat row_idx_mat = cv::repeat(row_idx, 1, cols);
 
-    cv::Mat1d distance;
+    cv::Mat1d distance, inv_d;
     cv::magnitude(center.x - row_idx_mat, center.y - col_idx_mat, distance);
-    const double epsilon = 1e-24;
-    distance.at<double>(center.x, center.y) = epsilon;
-    cv::Mat1d inv_d = 1 / distance;
+    cv::divide(1.0, distance, inv_d);
     inv_d.at<double>(center.x, center.y) = 0;
     return inv_d;
-    // return inv_d / cv::sum(inv_d)[0];
   }
 
   void find_consecutive() {
@@ -441,6 +489,7 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
       }
     }
   }
+
 };
 
 }  // namespace hsp
