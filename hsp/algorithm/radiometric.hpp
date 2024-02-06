@@ -13,6 +13,7 @@
 
 // C++ Standard
 #include <fstream>
+#include <limits>
 #include <numeric>
 #include <string>
 #include <vector>
@@ -290,9 +291,9 @@ class DefectivePixelCorrectionSpectral : public UnaryOperation<cv::Mat> {
  */
 class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
  public:
-   using ComputingType = double;
+  using ComputingType = double;
   ComputingType NaN = std::numeric_limits<ComputingType>::quiet_NaN();
-   ComputingType inf = std::numeric_limits<ComputingType>::infinity();
+  ComputingType inf = std::numeric_limits<ComputingType>::infinity();
 
  public:
   cv::Mat operator()(cv::Mat img) const override {
@@ -309,7 +310,7 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
                          cv::BORDER_CONSTANT, NaN);
     }
 
-//#pragma omp parallel for
+#pragma omp parallel for
     for (int i = 0; i < dp_list_.size(); ++i) {
       const cv::Point& defective_pixel = dp_list_[i];
       auto win_spatial = row_label_.at<LabelType>(defective_pixel);
@@ -325,7 +326,6 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
                     max_win_spectral_ + defective_pixel.y + win_spectral + 1),
           cv::Range(max_win_spatial_ + defective_pixel.x - win_spatial,
                     max_win_spatial_ + defective_pixel.x + win_spatial + 1));
-      
 
       auto mask = cv::Mat(window == window);
       bool over_threshold = false;
@@ -335,28 +335,30 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
         cv::Mat col_window = window.col(j);
         cv::Mat col_mean, col_stddev;
         cv::meanStdDev(col_window, col_mean, col_stddev, col_mask);
-        if (col_stddev.at<double>(0,0) > 0.1 * mean) {
+        if (col_stddev.at<double>(0, 0) > 0.1 * mean) {
           over_threshold = true;
           break;
         }
       }
       if (over_threshold) {
-      
+        // TODO(xiaoyc)
       }
-      //cv::Mat1f window_1f;
-      //window.convertTo(window_1f, cv::DataType<float>::type);
-      //cv::patchNaNs(window_1f, 0.0);
+      // cv::Mat1f window_1f;
+      // window.convertTo(window_1f, cv::DataType<float>::type);
+      // cv::patchNaNs(window_1f, 0.0);
       cv::Mat1d window_patched = window.clone();
-      //window_1f.convertTo(window_patched, cv::DataType<ComputingType>::type);
+      // window_1f.convertTo(window_patched, cv::DataType<ComputingType>::type);
       window_patched.setTo(0.0, window != window);
       auto prod = window_patched.mul(idw / cv::sum(idw)[0]);
 
       auto val = static_cast<uint16_t>(cv::sum(prod)[0]);
-      cv::Point window_center(window.rows/2, window.cols/2);
+      cv::Point window_center(window.rows / 2, window.cols / 2);
       window.at<ComputingType>(window_center.x, window_center.y) = val;
       cv::Mat1d spb;
-      cv::divide(cv::repeat(window.col(window_center.y), 1, window.cols), window, spb);
-      //cv::Mat inf_mask = (spb == std::numeric_limits<ComputingType>::infinity());
+      cv::divide(cv::repeat(window.col(window_center.y), 1, window.cols),
+                 window, spb);
+      // cv::Mat inf_mask = (spb ==
+      // std::numeric_limits<ComputingType>::infinity());
       spb.setTo(NaN, spb == inf);
       spb.row(spb.rows / 2) = NaN;
       window.setTo(NaN, spb != spb);
@@ -489,7 +491,6 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
       }
     }
   }
-
 };
 
 }  // namespace hsp

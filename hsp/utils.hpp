@@ -83,12 +83,14 @@ cv::Mat load_text(const std::string& filename) {
 }
 
 /**
-* @brief 计算输入矩阵各列中位数。
-* 
-* @details
-* 先对各列排序。如果列中元素个数为奇数，中值为排序后的中间元素；如果元素个数为偶数，中值为排序后中间2个元素的均值。NaN不参与计算。
-* 
-*/
+ * @brief 计算输入矩阵各列中位数。
+ *
+ * @details
+ * 先对各列排序。如果列中元素个数为奇数，中值为排序后的中间元素；
+ * 如果元素个数为偶数，中值为排序后中间2个元素的均值。
+ * NaN不参与计算。
+ *
+ */
 inline cv::Mat1d median(const cv::Mat& m) {
   cv::Mat1d m_d;
   if (m.type() != CV_64FC1) {
@@ -98,24 +100,23 @@ inline cv::Mat1d median(const cv::Mat& m) {
   }
   cv::Mat1d res = cv::Mat::zeros(1, m.cols, CV_64FC1);
   auto col_median = res.begin();
-  
+
   for (int i = 0; i < m.cols; ++i) {
     std::vector<double> column(m.rows);
     int size{0};
     for (int j = 0; j < m.rows; ++j) {
       auto val = m_d.at<double>(j, i);
-      if (!isnan(val)){
+      if (!isnan(val)) {
         column[size++] = val;
       }
     }
-    // TODO: 尝试用std::nth_element解决，注意NaN的处理方式
+    // TODO(xiaoyc): 尝试用std::nth_element解决，注意NaN的处理方式
     std::sort(column.begin(), column.begin() + size);
     int mid = size / 2;
     if (size % 2) {
       *col_median++ = column.at(mid);
-    } else if(mid != 0){
-      *col_median++ =
-          (column.at(mid - 1) + column.at(mid)) / 2.0;
+    } else if (mid != 0) {
+      *col_median++ = (column.at(mid - 1) + column.at(mid)) / 2.0;
     } else {
       *col_median++ = std::numeric_limits<double>::quiet_NaN();
     }
@@ -124,13 +125,14 @@ inline cv::Mat1d median(const cv::Mat& m) {
 }
 
 /**
-* @brief 查找数据中的离群值。
-* 
-* @details
-* 查找输入矩阵中每一列的离群值。离群值是指与中位数相差超过三倍经过换算的中位数绝对偏差 (scaled MAD) 的值。元素NaN不认为是离群值。
-* 实现了与MATLAB中同名函数类似的功能。
-* 
-*/
+ * @brief 查找数据中的离群值。
+ *
+ * @details
+ * 查找输入矩阵中每一列的离群值。离群值是指与中位数相差超过三倍经过换算的中位数绝对偏差
+ * (scaled MAD) 的值。元素NaN不认为是离群值。
+ * 实现了与MATLAB中同名函数类似的功能。
+ *
+ */
 inline cv::Mat isoutlier(const cv::Mat& m) {
   constexpr double erfcinv_1_5 = -0.476936276204470;
   constexpr double sqrt2 = 1.41421;
@@ -141,8 +143,8 @@ inline cv::Mat isoutlier(const cv::Mat& m) {
 }
 
 /**
-* @brief 分别计算矩阵各列的均值和标准差。忽略NaN。
-*/
+ * @brief 分别计算矩阵各列的均值和标准差。忽略NaN。
+ */
 inline cv::Mat1d meanStdDev(const cv::Mat& m) {
   auto mask = (m == m);
   cv::Mat1d res = cv::Mat::zeros(2, m.cols, CV_64FC1);
