@@ -102,7 +102,7 @@ inline cv::Mat1d median(const cv::Mat& m) {
   auto col_median = res.begin();
 
   for (int i = 0; i < m.cols; ++i) {
-    std::vector<double> column(m.rows);
+    std::vector<double> column(m.rows, std::numeric_limits<double>::quiet_NaN());
     int size{0};
     for (int j = 0; j < m.rows; ++j) {
       auto val = m_d.at<double>(j, i);
@@ -111,14 +111,20 @@ inline cv::Mat1d median(const cv::Mat& m) {
       }
     }
     // TODO(xiaoyc): 尝试用std::nth_element解决，注意NaN的处理方式
-    std::sort(column.begin(), column.begin() + size);
+    // std::sort(column.begin(), column.begin() + size);
     int mid = size / 2;
-    if (size % 2) {
+    if (size % 2 == 1) {
+      std::nth_element(column.begin(), column.begin() + mid,
+                       column.begin() + size);
       *col_median++ = column.at(mid);
     } else if (mid != 0) {
+      std::nth_element(column.begin(), column.begin() + mid - 1,
+                       column.begin() + size);
+      std::nth_element(column.begin(), column.begin() + mid,
+                       column.begin() + size);
       *col_median++ = (column.at(mid - 1) + column.at(mid)) / 2.0;
     } else {
-      *col_median++ = std::numeric_limits<double>::quiet_NaN();
+      ++col_median;
     }
   }
   return res;
@@ -156,6 +162,12 @@ inline cv::Mat1d meanStdDev(const cv::Mat& m) {
   }
   return res;
 }
+
+/**
+* @brief 判断矩阵元素是否为NaN。
+* 
+*/
+inline cv::MatExpr isnan(const cv::Mat& m) { return m != m; }
 
 }  // namespace hsp
 

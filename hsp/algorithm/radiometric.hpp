@@ -327,20 +327,10 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
           cv::Range(max_win_spatial_ + defective_pixel.x - win_spatial,
                     max_win_spatial_ + defective_pixel.x + win_spatial + 1));
 
-      auto mask = cv::Mat(window == window);
-      bool over_threshold = false;
-      double mean = cv::mean(window, mask)[0];
-      for (int j = 0; j < window.cols; ++j) {
-        cv::Mat col_mask = mask.col(j);
-        cv::Mat col_window = window.col(j);
-        cv::Mat col_mean, col_stddev;
-        cv::meanStdDev(col_window, col_mean, col_stddev, col_mask);
-        if (col_stddev.at<double>(0, 0) > 0.1 * mean) {
-          over_threshold = true;
-          break;
-        }
-      }
-      if (over_threshold) {
+      double mean_window = cv::mean(window, window == window)[0];
+      cv::Mat1d mean_stddev_window = meanStdDev(window);
+      if (std::any_of(mean_stddev_window.row(1).begin(), mean_stddev_window.row(1).end(), 
+        [mean_window](double stddev){ return stddev > 0.1 * mean_window;})) {
         // TODO(xiaoyc)
       }
       // cv::Mat1f window_1f;
@@ -368,7 +358,13 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
       auto TA3 = isoutlier(spb_vec).reshape(0, spb.rows);
       spb.setTo(NaN, TA1 + TA2 + TA3 != 0);
       spb.setTo(NaN, spb == 0);
-      auto mean_stddev = meanStdDev(spb);
+      auto mean_stddev_spb = meanStdDev(spb);
+      cv::Mat1i sum = TA1.row(window_center.x) + TA2.row(window_center.x) +
+                 (window != window).row(window_center.x) +
+                 (mean_stddev_spb != mean_stddev_spb).row(0);
+      if (std::any_of(sum.begin(), sum.end(), [](int i){ return i == 0;})) {
+        
+      }
       img.at<uint16_t>(defective_pixel) = val;
     }
     return img;
