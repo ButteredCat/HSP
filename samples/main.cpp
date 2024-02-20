@@ -9,12 +9,15 @@
  */
 // C++ Standard
 #include <chrono>
+#include <cstdio>
+#include <ctime>
 #include <iostream>
 #include <string>
 
 // Boost
 #include <boost/filesystem.hpp>
 #include <boost/json/src.hpp>
+#include <boost/program_options.hpp>
 
 // OpenCV
 #include <opencv2/imgcodecs.hpp>
@@ -25,6 +28,7 @@
 #include "../hsp/core.hpp"
 #include "../hsp/decoder/AHSIData.hpp"
 #include "./order_parser.hpp"
+#include "git.h"
 
 using parser::Coeff;
 using parser::Input;
@@ -34,6 +38,15 @@ using std::chrono::microseconds;
 using std::chrono::system_clock;
 
 namespace fs = boost::filesystem;
+namespace po = boost::program_options;
+
+/**
+ * @brief 对高光谱影像数据辐射校正
+ *
+ * @param input
+ * @param coeff
+ * @param output
+ */
 
 void img_process(Input input, Coeff coeff, std::string output) {
   auto src_dataset = GDALDatasetUniquePtr(
@@ -64,6 +77,13 @@ void img_process(Input input, Coeff coeff, std::string output) {
   std::transform(beg, end, obeg, ops);
 }
 
+/**
+ * @brief 解析原始数据，并辐射校正
+ *
+ * @param input
+ * @param coeff
+ * @param output
+ */
 void raw_process(Input input, Coeff coeff, std::string output) {
   hsp::AHSIData L0_data(input.filename);
   L0_data.Traverse();
@@ -91,39 +111,85 @@ void raw_process(Input input, Coeff coeff, std::string output) {
   }
 }
 
+/**
+ * @brief
+ *
+ * @param argc
+ * @param argv
+ * @return int
+ */
 int main(int argc, char* argv[]) {
-  // try {
-  if (argc < 2) {
-    std::cerr << "no input order\n";
-    return -1;
-  }
-  auto start = system_clock::now();
-  std::ifstream ifs(argv[1]);
-  std::string input(std::istreambuf_iterator<char>(ifs), {});
-  json::parse_options opt;
-  opt.allow_comments = true;
-  opt.allow_trailing_commas = true;
-  Order order = json::value_to<Order>(json::parse(input, {}, opt));
+  try {
+    po::options_description generic("Generic options");
+    generic.add_options()("version,v", "print version string")(
+        "help", "produce help message")("config,c", po::value<std::string>(),
+                                        "config file");
 
-  GDALAllRegister();
+    po::options_description hidden("Hidden options");
+    hidden.add_options()("input-file", po::value<std::vector<std::string>>(),
+                         "input file");
+
+    po::positional_options_description positional;
+    positional.add("input-file", -1);
+
+    po::options_description cmdline_options;
+    cmdline_options.add(generic).add(hidden);
+
+    po::variables_map vm;
+    po::store(po::command_line_parser(argc, argv)
+                  .options(cmdline_options)
+                  .positional(positional)
+                  .run(),
+              vm);
+    if (vm.count("version")) {
+      if (git_IsPopulated()) {
+        printf("Branch: %s\nCommit: %s", git_Branch(), git_CommitSHA1());
+        if (git_AnyUncommittedChanges()) {
+          printf(" (has uncommited changes)\n");
+        } else {
+          printf("\n");
+        }
+      }
+      std::time_t time = std::time({});
+      char timeString[] = "yyyy-mm-ddThh:mm:ssZ";
+      std::strftime(timeString, sizeof(timeString), "%FT%TZ",
+                    std::gmtime(&time));
+      printf("Date: %s\n", timeString);
+      return 0;
+    }
+
+    GDALAllRegister();
+    auto start = system_clock::now();
+    std::vector<std::string> input_files;
+    if (vm.count("input-file")) {
+      input_files = vm["input-file"].as<decltype(input_files)>();
+      for (auto&& each : input_files) {
+        std::ifstream ifs(each);
+        std::string input(std::istreambuf_iterator<char>(ifs), {});
+        json::parse_options opt;
+        opt.allow_comments = true;
+        opt.allow_trailing_commas = true;
+        Order order = json::value_to<Order>(json::parse(input, {}, opt));
 
 #pragma omp parallel for
-  for (int i = 0; i < order.inputs.size(); ++i) {
-    if (order.inputs[i].is_raw) {
-      raw_process(order.inputs[i], order.coeff, order.outputs.at(i));
-    } else {
-      img_process(order.inputs[i], order.coeff, order.outputs.at(i));
+        for (int i = 0; i < order.inputs.size(); ++i) {
+          if (order.inputs[i].is_raw) {
+            raw_process(order.inputs[i], order.coeff, order.outputs.at(i));
+          } else {
+            img_process(order.inputs[i], order.coeff, order.outputs.at(i));
+          }
+        }
+      }
     }
-  }
 
-  // 输出计算耗时
-  auto end_time = system_clock::now();
-  auto duration = duration_cast<microseconds>(end_time - start);
-  std::cout << "Cost: "
-            << double(duration.count()) * microseconds::period::num /
-                   microseconds::period::den
-            << "s" << std::endl;
-  // } catch (const std::exception& e) {
-  //   std::cerr << e.what();
-  // }
+    // 输出计算耗时
+    auto end_time = system_clock::now();
+    auto duration = duration_cast<microseconds>(end_time - start);
+    std::cout << "Cost: "
+              << double(duration.count()) * microseconds::period::num /
+                     microseconds::period::den
+              << "s" << std::endl;
+  } catch (const std::exception& e) {
+    std::cerr << e.what();
+  }
 }

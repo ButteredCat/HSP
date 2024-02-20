@@ -4,7 +4,7 @@ set(TARGET_NAME hsp)
 
 project(${TARGET_NAME})
 
-# «ø÷∆»√ vs Ω´‘¥Œƒº˛“‘ utf-8 ∏Ò ΩΩ‚¬Î
+# Âº∫Âà∂ËÆ© vs Â∞ÜÊ∫êÊñá‰ª∂‰ª• utf-8 Ê†ºÂºèËß£Á†Å
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
     add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
@@ -18,9 +18,10 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
 find_package(GDAL 2.3 REQUIRED)
 find_package(OpenCV 4 REQUIRED)
-find_package(Boost 1.71 COMPONENTS filesystem REQUIRED)
+find_package(Boost 1.71 COMPONENTS filesystem program_options REQUIRED)
 find_package(GTest)
 find_package(OpenMP)
+
 
 include_directories(
     ${GDAL_INCLUDE_DIR}
