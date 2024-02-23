@@ -292,8 +292,8 @@ class DefectivePixelCorrectionSpectral : public UnaryOperation<cv::Mat> {
 class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
  public:
   using ComputingType = double;
-  ComputingType NaN = std::numeric_limits<ComputingType>::quiet_NaN();
-  ComputingType inf = std::numeric_limits<ComputingType>::infinity();
+  const ComputingType NaN = std::numeric_limits<ComputingType>::quiet_NaN();
+  const ComputingType inf = std::numeric_limits<ComputingType>::infinity();
 
  public:
   cv::Mat operator()(cv::Mat img) const override {
@@ -329,43 +329,74 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
 
       double mean_window = cv::mean(window, window == window)[0];
       cv::Mat1d mean_stddev_window = meanStdDev(window);
-      if (std::any_of(mean_stddev_window.row(1).begin(), mean_stddev_window.row(1).end(), 
+      cv::Mat1d stddev_window = mean_stddev_window.row(1);
+      if (std::any_of(stddev_window.begin(), stddev_window.end(), 
         [mean_window](double stddev){ return stddev > 0.1 * mean_window;})) {
         // TODO(xiaoyc)
       }
       // cv::Mat1f window_1f;
       // window.convertTo(window_1f, cv::DataType<float>::type);
       // cv::patchNaNs(window_1f, 0.0);
+      cv::Mat1d idw_patched = idw.clone();
       cv::Mat1d window_patched = window.clone();
       // window_1f.convertTo(window_patched, cv::DataType<ComputingType>::type);
-      window_patched.setTo(0.0, window != window);
-      auto prod = window_patched.mul(idw / cv::sum(idw)[0]);
-
-      auto val = static_cast<uint16_t>(cv::sum(prod)[0]);
+      idw_patched.setTo(0.0, isnan(window));
+      window_patched.setTo(0.0, isnan(window));
+      auto prod = window_patched.mul(idw_patched / cv::sum(idw_patched)[0]);
+      auto patch = static_cast<uint16_t>(cv::sum(prod)[0]);
       cv::Point window_center(window.rows / 2, window.cols / 2);
-      window.at<ComputingType>(window_center.x, window_center.y) = val;
+      window.at<ComputingType>(window_center.x, window_center.y) = patch;
       cv::Mat1d spb;
       cv::divide(cv::repeat(window.col(window_center.y), 1, window.cols),
                  window, spb);
       // cv::Mat inf_mask = (spb ==
       // std::numeric_limits<ComputingType>::infinity());
+      cv::Mat Tpb = spb.row(window_center.x).clone();
       spb.setTo(NaN, spb == inf);
-      spb.row(spb.rows / 2) = NaN;
-      window.setTo(NaN, spb != spb);
+      spb.row(window_center.x) = NaN;
+      window.setTo(NaN, isnan(spb));
       auto TA1 = isoutlier(spb);
       auto TA2 = isoutlier(window);
       cv::Mat spb_vec = spb.reshape(0, spb.rows * spb.cols);
       auto TA3 = isoutlier(spb_vec).reshape(0, spb.rows);
-      spb.setTo(NaN, TA1 + TA2 + TA3 != 0);
+      cv::MatExpr outlier_mask = (TA1 + TA2 + TA3 != 0);
+      spb.setTo(NaN, outlier_mask);
       spb.setTo(NaN, spb == 0);
+      window.setTo(NaN, outlier_mask);
       auto mean_stddev_spb = meanStdDev(spb);
+      auto mean_spb = mean_stddev_spb.row(0);
+      auto stddev_spb = mean_stddev_spb.row(1);
       cv::Mat1i sum = TA1.row(window_center.x) + TA2.row(window_center.x) +
-                 (window != window).row(window_center.x) +
-                 (mean_stddev_spb != mean_stddev_spb).row(0);
+                 isnan(window.row(window_center.x)) +
+                 isnan(mean_spb);
+      cv::Mat1d window2;
       if (std::any_of(sum.begin(), sum.end(), [](int i){ return i == 0;})) {
-        
+        window2 = window.row(window_center.x);
+      } else {
+        window2 = mean(window);
       }
-      img.at<uint16_t>(defective_pixel) = val;
+
+      if (win_spatial < 0.8 * img.rows && win_spectral < 0.8 * img.cols &&
+          (cv::sum(Tpb <= mean_spb - stddev_spb)[0] != 0 ||
+           cv::sum(Tpb >= mean_spb + stddev_spb)[0] != 0 || 
+            cv::sum(~isnan(Tpb+mean_spb))[0] == 0)
+        ) {
+
+        auto idw_mid_row = idw.row(window_center.x).clone();
+        idw_mid_row.setTo(0.0, isnan(window2));
+        idw_mid_row.setTo(0.0, isnan(mean_spb));
+        double idw_sum = cv::sum(idw_mid_row)[0];
+        if (idw_sum != 0) {
+          window2.setTo(0.0, isnan(window2));
+          mean_spb.setTo(0.0, isnan(mean_spb));
+          auto prod_alt = window2.mul(mean_spb).mul(idw_mid_row / idw_sum);
+          auto patch_alt = static_cast<uint16_t>(cv::sum(prod_alt)[0]);
+          if (patch_alt != 0) {
+            patch = patch_alt;
+          }
+        }
+      } 
+      img.at<uint16_t>(defective_pixel) = patch;
     }
     return img;
   }

@@ -31,6 +31,11 @@
 #include "./gdal_traits.hpp"
 
 namespace hsp {
+
+const double NaNd = std::numeric_limits<double>::quiet_NaN();
+
+const float NaNf = std::numeric_limits<float>::quiet_NaN();
+
 /**
  * @brief 载入栅格系数。
  *
@@ -102,16 +107,14 @@ inline cv::Mat1d median(const cv::Mat& m) {
   auto col_median = res.begin();
 
   for (int i = 0; i < m.cols; ++i) {
-    std::vector<double> column(m.rows, std::numeric_limits<double>::quiet_NaN());
+    std::vector<double> column(m.rows, NaNd);
     int size{0};
     for (int j = 0; j < m.rows; ++j) {
       auto val = m_d.at<double>(j, i);
-      if (!isnan(val)) {
+      if (!std::isnan(val)) {
         column[size++] = val;
       }
     }
-    // TODO(xiaoyc): 尝试用std::nth_element解决，注意NaN的处理方式
-    // std::sort(column.begin(), column.begin() + size);
     int mid = size / 2;
     if (size % 2 == 1) {
       std::nth_element(column.begin(), column.begin() + mid,
@@ -129,6 +132,27 @@ inline cv::Mat1d median(const cv::Mat& m) {
   }
   return res;
 }
+
+/**
+* @brief 计算各列均值。
+* 
+* @details
+* NaN不参与计算。
+* 
+*/
+inline cv::Mat1d mean(const cv::Mat& m) {
+  cv::Mat m_T;
+  cv::transpose(m, m_T);
+  cv::Mat res(1, m.cols, CV_64FC1, NaNd);
+  for (int i = 0; i < m.cols; ++i) {
+    auto each_row = m_T.row(i);
+    auto row_mean = cv::mean(each_row, each_row == each_row);
+    res.at<double>(0, i) = row_mean[0];
+  }
+  return res;
+}
+
+
 
 /**
  * @brief 查找数据中的离群值。

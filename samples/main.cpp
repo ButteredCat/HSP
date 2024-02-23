@@ -22,13 +22,16 @@
 // OpenCV
 #include <opencv2/imgcodecs.hpp>
 
+// cmake-git-version-tracking
+#include "git.h"
+
 // hsp
 #include "../hsp/algorithm/AHSI_specific.hpp"
 #include "../hsp/algorithm/radiometric.hpp"
 #include "../hsp/core.hpp"
 #include "../hsp/decoder/AHSIData.hpp"
 #include "./order_parser.hpp"
-#include "git.h"
+
 
 using parser::Coeff;
 using parser::Input;
@@ -150,11 +153,7 @@ int main(int argc, char* argv[]) {
           printf("\n");
         }
       }
-      std::time_t time = std::time({});
-      char timeString[] = "yyyy-mm-ddThh:mm:ssZ";
-      std::strftime(timeString, sizeof(timeString), "%FT%TZ",
-                    std::gmtime(&time));
-      printf("Date: %s\n", timeString);
+      printf("Build Date: %s, %s\n", __TIME__, __DATE__);
       return 0;
     }
 
