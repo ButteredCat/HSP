@@ -1,35 +1,20 @@
 {
   "input": [
     {
-      "filename": "/home/xiaoyc/dataset/hsp_unittest/GF501A/GF5A_AHSI_SW_20230722_354_621_L00000041058.DAT",
-      "raw": true
-    },
-    {
-      "filename": "/home/xiaoyc/dataset/hsp_unittest/GF501A/GF5A_AHSI_SW_20230722_354_621_L00000041058.DAT",
-      "raw": true
-    },
-    {
-      "filename": "/home/xiaoyc/dataset/hsp_unittest/GF501A/GF5A_AHSI_SW_20230722_354_621_L00000041058.DAT",
-      "raw": true
-    },
-    {
-      "filename": "/home/xiaoyc/dataset/hsp_unittest/GF501A/GF5A_AHSI_SW_20230722_354_621_L00000041058.DAT",
+      "filename": "/home/xiaoyc/repo/hsp/data/dataset/GF501A/GF5A_AHSI_SW_20230708_353_625_L00000038437.DAT",
       "raw": true
     }
   ],
   "coeff": {
-    "dark_a": "/home/xiaoyc/repo/hsp/data/dataset/hsp_unittest/GF501A/coeff/SWIR/dark_a.tif",
-    "dark_b": "/home/xiaoyc/repo/hsp/data/dataset/hsp_unittest/GF501A/coeff/SWIR/dark_b.tif",
+    "dark_a": "/home/xiaoyc/repo/hsp/data/dataset/GF501A/coeff/SWIR/dark_a.tif",
+    "dark_b": "/home/xiaoyc/repo/hsp/data/dataset/GF501A/coeff/SWIR/dark_b.tif",
     "rel_a": "",
     "rel_b": "",
-    "badpixel": "/home/xiaoyc/repo/hsp/data/dataset/hsp_unittest/GF501A/coeff/SWIR/badpixel.tif",
+    "badpixel": "/home/xiaoyc/repo/hsp/data/dataset/GF501A/coeff/SWIR/badpixel.tif",
     "etalon_a": "",
     "etalon_b": ""
   },
   "output": [
-    "/tmp/hsp/out_1.tif",
-    "/tmp/hsp/out_2.tif",
-    "/tmp/hsp/out_3.tif",
-    "/tmp/hsp/out_4.tif"
+  "/tmp/hsp/GF5A_AHSI_SW_20230708_353_625_L00000038437_IDW.tif"
   ]
 }

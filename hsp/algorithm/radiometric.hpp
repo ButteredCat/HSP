@@ -330,8 +330,10 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
       double mean_window = cv::mean(window, window == window)[0];
       cv::Mat1d mean_stddev_window = meanStdDev(window);
       cv::Mat1d stddev_window = mean_stddev_window.row(1);
-      if (std::any_of(stddev_window.begin(), stddev_window.end(), 
-        [mean_window](double stddev){ return stddev > 0.1 * mean_window;})) {
+      if (std::any_of(stddev_window.begin(), stddev_window.end(),
+                      [mean_window](double stddev) {
+                        return stddev > 0.1 * mean_window;
+                      })) {
         // TODO(xiaoyc)
       }
       // cv::Mat1f window_1f;
@@ -367,10 +369,9 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
       auto mean_spb = mean_stddev_spb.row(0);
       auto stddev_spb = mean_stddev_spb.row(1);
       cv::Mat1i sum = TA1.row(window_center.x) + TA2.row(window_center.x) +
-                 isnan(window.row(window_center.x)) +
-                 isnan(mean_spb);
+                      isnan(window.row(window_center.x)) + isnan(mean_spb);
       cv::Mat1d window2;
-      if (std::any_of(sum.begin(), sum.end(), [](int i){ return i == 0;})) {
+      if (std::any_of(sum.begin(), sum.end(), [](int i) { return i == 0; })) {
         window2 = window.row(window_center.x);
       } else {
         window2 = mean(window);
@@ -378,10 +379,8 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
 
       if (win_spatial < 0.8 * img.rows && win_spectral < 0.8 * img.cols &&
           (cv::sum(Tpb <= mean_spb - stddev_spb)[0] != 0 ||
-           cv::sum(Tpb >= mean_spb + stddev_spb)[0] != 0 || 
-            cv::sum(~isnan(Tpb+mean_spb))[0] == 0)
-        ) {
-
+           cv::sum(Tpb >= mean_spb + stddev_spb)[0] != 0 ||
+           cv::sum(~isnan(Tpb + mean_spb))[0] == 0)) {
         auto idw_mid_row = idw.row(window_center.x).clone();
         idw_mid_row.setTo(0.0, isnan(window2));
         idw_mid_row.setTo(0.0, isnan(mean_spb));
@@ -395,7 +394,7 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
             patch = patch_alt;
           }
         }
-      } 
+      }
       img.at<uint16_t>(defective_pixel) = patch;
     }
     return img;

@@ -18,4 +18,15 @@ set(SRC_FILES main.cpp)
 
 add_executable(${TARGET_NAME} ${SRC_FILES})
 
-target_link_libraries(${TARGET_NAME} ${Boost_LIBRARIES} ${GDAL_LIBRARY} ${OpenCV_LIBS} cmake_git_version_tracking)
+include(CMakePrintHelpers)
+
+cmake_print_properties(
+TARGETS
+OpenMP::OpenMP_CXX opencv_core cmake_git_version_tracking
+PROPERTIES
+INTERFACE_COMPILE_OPTIONS
+INTERFACE_INCLUDE_DIRECTORIES
+INTERFACE_LINK_LIBRARIES
+)
+
+target_link_libraries(${TARGET_NAME} ${Boost_LIBRARIES} ${GDAL_LIBRARY} ${OpenCV_LIBS} OpenMP::OpenMP_CXX cmake_git_version_tracking)

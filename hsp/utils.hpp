@@ -134,12 +134,12 @@ inline cv::Mat1d median(const cv::Mat& m) {
 }
 
 /**
-* @brief 计算各列均值。
-* 
-* @details
-* NaN不参与计算。
-* 
-*/
+ * @brief 计算各列均值。
+ *
+ * @details
+ * NaN不参与计算。
+ *
+ */
 inline cv::Mat1d mean(const cv::Mat& m) {
   cv::Mat m_T;
   cv::transpose(m, m_T);
@@ -151,8 +151,6 @@ inline cv::Mat1d mean(const cv::Mat& m) {
   }
   return res;
 }
-
-
 
 /**
  * @brief 查找数据中的离群值。
@@ -188,9 +186,9 @@ inline cv::Mat1d meanStdDev(const cv::Mat& m) {
 }
 
 /**
-* @brief 判断矩阵元素是否为NaN。
-* 
-*/
+ * @brief 判断矩阵元素是否为NaN。
+ *
+ */
 inline cv::MatExpr isnan(const cv::Mat& m) { return m != m; }
 
 }  // namespace hsp

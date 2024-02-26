@@ -32,7 +32,6 @@
 #include "../hsp/decoder/AHSIData.hpp"
 #include "./order_parser.hpp"
 
-
 using parser::Coeff;
 using parser::Input;
 using parser::Order;
