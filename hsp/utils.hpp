@@ -32,9 +32,9 @@
 
 namespace hsp {
 
-const double NaNd = std::numeric_limits<double>::quiet_NaN();
+constexpr double NaNd = std::numeric_limits<double>::quiet_NaN();
 
-const float NaNf = std::numeric_limits<float>::quiet_NaN();
+constexpr float NaNf = std::numeric_limits<float>::quiet_NaN();
 
 /**
  * @brief 载入栅格系数。
@@ -174,13 +174,21 @@ inline cv::Mat isoutlier(const cv::Mat& m) {
  * @brief 分别计算矩阵各列的均值和标准差。忽略NaN。
  */
 inline cv::Mat1d meanStdDev(const cv::Mat& m) {
-  auto mask = (m == m);
-  cv::Mat1d res = cv::Mat::zeros(2, m.cols, CV_64FC1);
-  for (int i = 0; i < m.cols; ++i) {
+  cv::Mat1d m_T;
+  cv::transpose(m, m_T);
+  auto mask = (m_T == m_T);
+  cv::Mat res(2, m_T.rows, CV_64FC1, NaNd);
+  for (int i = 0; i < m_T.rows; ++i) {
     cv::Mat1d mean, stddev;
-    cv::meanStdDev(m.col(i), mean, stddev, mask.col(i));
-    res.at<double>(0, i) = mean.at<double>(0, 0);
-    res.at<double>(1, i) = stddev.at<double>(0, 0);
+    cv::Mat1d row = m_T.row(i);
+    if (std::all_of(row.begin(), row.end(), std::isnan<double>)) {
+      res.at<double>(0, i) = NaNd;
+      res.at<double>(1, i) = NaNd;
+    } else {
+      cv::meanStdDev(m_T.row(i), mean, stddev, mask.row(i));
+      res.at<double>(0, i) = mean.at<double>(0, 0);
+      res.at<double>(1, i) = stddev.at<double>(0, 0);
+    }
   }
   return res;
 }

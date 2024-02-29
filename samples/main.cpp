@@ -91,13 +91,15 @@ void raw_process(Input input, Coeff coeff, std::string output) {
   L0_data.Traverse();
 
   auto poDriver = GetGDALDriverManager()->GetDriverByName("GTiff");
+  char** papszOptions{nullptr};
+  // papszOptions = CSLSetNameValue(papszOptions, "INTERLEAVE", "BIL");
   if (!poDriver) {
     return;
   }
   auto dst_dataset =
       GDALDatasetUniquePtr(GDALDataset::FromHandle(poDriver->Create(
           output.c_str(), L0_data.samples(), L0_data.lines(), L0_data.bands(),
-          hsp::gdal::DataType<uint16_t>::type(), nullptr)));
+          hsp::gdal::DataType<uint16_t>::type(), papszOptions)));
   if (!dst_dataset) {
     return;
   }
@@ -121,6 +123,7 @@ void raw_process(Input input, Coeff coeff, std::string output) {
  * @return int
  */
 int main(int argc, char* argv[]) {
+  auto start = system_clock::now();
   try {
     po::options_description generic("Generic options");
     generic.add_options()("version,v", "print version string")(
@@ -157,7 +160,6 @@ int main(int argc, char* argv[]) {
     }
 
     GDALAllRegister();
-    auto start = system_clock::now();
     std::vector<std::string> input_files;
     if (vm.count("input-file")) {
       input_files = vm["input-file"].as<decltype(input_files)>();
@@ -180,14 +182,15 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    // 输出计算耗时
-    auto end_time = system_clock::now();
-    auto duration = duration_cast<microseconds>(end_time - start);
-    std::cout << "Cost: "
-              << double(duration.count()) * microseconds::period::num /
-                     microseconds::period::den
-              << "s" << std::endl;
+
   } catch (const std::exception& e) {
     std::cerr << e.what();
   }
+  // 输出计算耗时
+  auto end_time = system_clock::now();
+  auto duration = duration_cast<microseconds>(end_time - start);
+  std::cout << "Cost: "
+            << double(duration.count()) * microseconds::period::num /
+                   microseconds::period::den
+            << "s" << std::endl;
 }

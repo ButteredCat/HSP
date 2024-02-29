@@ -12,6 +12,7 @@
 #define HSP_ALGORITHM_RADIOMETRIC_HPP_
 
 // C++ Standard
+#include <cmath>
 #include <fstream>
 #include <limits>
 #include <numeric>
@@ -297,35 +298,36 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
 
  public:
   cv::Mat operator()(cv::Mat img) const override {
-    cv::Mat1d padded;
+    cv::Mat1d img_1d, padded;
     if (img.type() != cv::DataType<ComputingType>::type) {
-      cv::Mat1d img_1d;
       img.convertTo(img_1d, cv::DataType<ComputingType>::type);
-      cv::copyMakeBorder(img_1d, padded, max_win_spectral_, max_win_spectral_,
-                         max_win_spatial_, max_win_spatial_,
-                         cv::BORDER_CONSTANT, NaN);
     } else {
-      cv::copyMakeBorder(img, padded, max_win_spectral_, max_win_spectral_,
-                         max_win_spatial_, max_win_spatial_,
-                         cv::BORDER_CONSTANT, NaN);
+      img_1d = img.clone();
     }
+    img_1d.setTo(NaN, dpm_ != 0);
+    cv::copyMakeBorder(img_1d, padded, max_win_spectral_, max_win_spectral_,
+                       max_win_spatial_, max_win_spatial_, cv::BORDER_CONSTANT,
+                       NaN);
 
 #pragma omp parallel for
     for (int i = 0; i < dp_list_.size(); ++i) {
       const cv::Point& defective_pixel = dp_list_[i];
       auto win_spatial = row_label_.at<LabelType>(defective_pixel);
       auto win_spectral = col_label_.at<LabelType>(defective_pixel);
-      cv::Mat idw(inverse_weights_table_,
+      cv::Mat idw_t(inverse_weights_table_,
                   cv::Range(max_win_spectral_ - win_spectral,
                             max_win_spectral_ + win_spectral + 1),
                   cv::Range(max_win_spatial_ - win_spatial,
                             max_win_spatial_ + win_spatial + 1));
-      cv::Mat window(
+      cv::Mat window_t(
           padded,
           cv::Range(max_win_spectral_ + defective_pixel.y - win_spectral,
                     max_win_spectral_ + defective_pixel.y + win_spectral + 1),
           cv::Range(max_win_spatial_ + defective_pixel.x - win_spatial,
                     max_win_spatial_ + defective_pixel.x + win_spatial + 1));
+      cv::Mat1d window, idw;
+      cv::transpose(window_t, window);
+      cv::transpose(idw_t, idw);
 
       double mean_window = cv::mean(window, window == window)[0];
       cv::Mat1d mean_stddev_window = meanStdDev(window);
@@ -345,7 +347,7 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
       idw_patched.setTo(0.0, isnan(window));
       window_patched.setTo(0.0, isnan(window));
       auto prod = window_patched.mul(idw_patched / cv::sum(idw_patched)[0]);
-      auto patch = static_cast<uint16_t>(cv::sum(prod)[0]);
+      auto patch = static_cast<uint16_t>(std::round(cv::sum(prod)[0])); // TODO(xiaoyc): round
       cv::Point window_center(window.rows / 2, window.cols / 2);
       window.at<ComputingType>(window_center.x, window_center.y) = patch;
       cv::Mat1d spb;
