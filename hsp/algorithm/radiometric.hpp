@@ -315,10 +315,10 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
       auto win_spatial = row_label_.at<LabelType>(defective_pixel);
       auto win_spectral = col_label_.at<LabelType>(defective_pixel);
       cv::Mat idw_t(inverse_weights_table_,
-                  cv::Range(max_win_spectral_ - win_spectral,
-                            max_win_spectral_ + win_spectral + 1),
-                  cv::Range(max_win_spatial_ - win_spatial,
-                            max_win_spatial_ + win_spatial + 1));
+                    cv::Range(max_win_spectral_ - win_spectral,
+                              max_win_spectral_ + win_spectral + 1),
+                    cv::Range(max_win_spatial_ - win_spatial,
+                              max_win_spatial_ + win_spatial + 1));
       cv::Mat window_t(
           padded,
           cv::Range(max_win_spectral_ + defective_pixel.y - win_spectral,
@@ -347,7 +347,7 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
       idw_patched.setTo(0.0, isnan(window));
       window_patched.setTo(0.0, isnan(window));
       auto prod = window_patched.mul(idw_patched / cv::sum(idw_patched)[0]);
-      auto patch = static_cast<uint16_t>(std::round(cv::sum(prod)[0])); // TODO(xiaoyc): round
+      auto patch = static_cast<uint16_t>(std::round(cv::sum(prod)[0]));
       cv::Point window_center(window.rows / 2, window.cols / 2);
       window.at<ComputingType>(window_center.x, window_center.y) = patch;
       cv::Mat1d spb;

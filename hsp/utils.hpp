@@ -181,7 +181,8 @@ inline cv::Mat1d meanStdDev(const cv::Mat& m) {
   for (int i = 0; i < m_T.rows; ++i) {
     cv::Mat1d mean, stddev;
     cv::Mat1d row = m_T.row(i);
-    if (std::all_of(row.begin(), row.end(), std::isnan<double>)) {
+    if (std::all_of(row.begin(), row.end(),
+                    [](double val) { return std::isnan(val); })) {
       res.at<double>(0, i) = NaNd;
       res.at<double>(1, i) = NaNd;
     } else {
