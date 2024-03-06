@@ -11,6 +11,8 @@
 #ifndef HSP_ALGORITHM_CUDA_HPP_
 #define HSP_ALGORITHM_CUDA_HPP_
 
+#ifdef HAVE_CUDA
+
 // C++ Standard
 #include <memory>
 #include <string>
@@ -212,5 +214,7 @@ class GaussianFilter : public hsp::UnaryOperation<GpuMat> {
 }  // namespace cuda
 
 }  // namespace hsp
+
+#endif  // HAVE_CUDA
 
 #endif  // HSP_ALGORITHM_CUDA_HPP_

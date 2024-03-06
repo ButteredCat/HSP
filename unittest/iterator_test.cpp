@@ -47,7 +47,7 @@ class IteratorTest : public ::testing::Test {
     GDALAllRegister();
     ASSERT_TRUE(fs::exists(src_file));
     src_dataset = GDALDatasetUniquePtr(
-        GDALDataset::FromHandle(GDALOpen(src_file.c_str(), GA_Update)));
+        GDALDataset::FromHandle(GDALOpen(src_file.string().c_str(), GA_Update)));
     ASSERT_NE(nullptr, src_dataset) << "Source dataset should be created.";
 
     n_samples = src_dataset->GetRasterXSize();
@@ -71,7 +71,7 @@ class IteratorTest : public ::testing::Test {
     }
     auto poDriver = GetGDALDriverManager()->GetDriverByName("ENVI");
     ASSERT_NE(nullptr, poDriver);
-    dst_dataset = poDriver->Create(dst_file.c_str(), n_samples, n_lines,
+    dst_dataset = poDriver->Create(dst_file.string().c_str(), n_samples, n_lines,
                                    n_bands, type, nullptr);
     ASSERT_NE(nullptr, dst_dataset);
   }

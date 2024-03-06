@@ -200,6 +200,12 @@ inline cv::Mat1d meanStdDev(const cv::Mat& m) {
  */
 inline cv::MatExpr isnan(const cv::Mat& m) { return m != m; }
 
+/**
+* @brief 判断是否矩阵所有元素均为NaN。
+*/
+inline bool isAllNaN(const cv::Mat& m) { return cv::countNonZero(~isnan(m)) == 0; }
+
+
 }  // namespace hsp
 
 #endif  // HSP_UTILS_HPP_

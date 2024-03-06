@@ -30,7 +30,7 @@ class OperationTest : public ::testing::Test {
     ASSERT_TRUE(fs::exists(rel_a_coeff));
     ASSERT_TRUE(fs::exists(rel_b_coeff));
     src_dataset = GDALDatasetUniquePtr(
-        GDALDataset::FromHandle(GDALOpen(src_file.c_str(), GA_Update)));
+        GDALDataset::FromHandle(GDALOpen(src_file.string().c_str(), GA_Update)));
     ASSERT_NE(nullptr, src_dataset) << "Source dataset should be created.";
 
     n_samples = src_dataset->GetRasterXSize();
@@ -56,7 +56,7 @@ class OperationTest : public ::testing::Test {
     if (fs::exists(dst_file)) {
       fs::remove(dst_file);
     }
-    dst_dataset = poDriver->CreateCopy(dst_file.c_str(), src_dataset.get(),
+    dst_dataset = poDriver->CreateCopy(dst_file.string().c_str(), src_dataset.get(),
                                        false, 0, 0, 0);
     ASSERT_NE(nullptr, dst_dataset);
   }

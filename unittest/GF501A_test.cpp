@@ -45,7 +45,7 @@ class GF501AVNIRTest : public ::testing::Test {
     ASSERT_NE(nullptr, poDriver);
     papszOptions = CSLSetNameValue(papszOptions, "INTERLEAVE", "BAND");
     dataset = GDALDataset::FromHandle(
-        poDriver->Create(dst_file.c_str(), L0_data.samples(), L0_data.lines(),
+        poDriver->Create(dst_file.string().c_str(), L0_data.samples(), L0_data.lines(),
                          L0_data.bands(), GDT_UInt16, papszOptions));
     ASSERT_NE(nullptr, dataset);
   }
@@ -150,7 +150,7 @@ class GF501ASWIRTest : public ::testing::Test {
     ASSERT_NE(nullptr, poDriver);
     papszOptions = CSLSetNameValue(papszOptions, "INTERLEAVE", "BAND");
     dataset = GDALDataset::FromHandle(
-        poDriver->Create(dst_file.c_str(), L0_data.samples(), L0_data.lines(),
+        poDriver->Create(dst_file.string().c_str(), L0_data.samples(), L0_data.lines(),
                          L0_data.bands(), GDT_UInt16, papszOptions));
     ASSERT_NE(nullptr, dataset);
   }
