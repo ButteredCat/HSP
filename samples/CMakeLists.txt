@@ -13,6 +13,7 @@ FetchContent_Declare(cmake_git_version_tracking
 
 FetchContent_MakeAvailable(cmake_git_version_tracking)
 
+find_package(spdlog REQUIRED)
 
 set(SRC_FILES main.cpp)
 
@@ -29,4 +30,4 @@ INTERFACE_INCLUDE_DIRECTORIES
 INTERFACE_LINK_LIBRARIES
 )
 
-target_link_libraries(${TARGET_NAME} ${Boost_LIBRARIES} ${GDAL_LIBRARY} ${OpenCV_LIBS} OpenMP::OpenMP_CXX cmake_git_version_tracking)
+target_link_libraries(${TARGET_NAME} ${Boost_LIBRARIES} ${GDAL_LIBRARY} ${OpenCV_LIBS} OpenMP::OpenMP_CXX spdlog::spdlog cmake_git_version_tracking)

@@ -25,6 +25,9 @@
 // cmake-git-version-tracking
 #include "git.h"
 
+// spdlog
+#include "spdlog/spdlog.h"
+
 // hsp
 #include "../hsp/algorithm/AHSI_specific.hpp"
 #include "../hsp/algorithm/radiometric.hpp"
@@ -109,9 +112,10 @@ void raw_process(Input input, Coeff coeff, std::string output) {
   dbc.load(coeff.dark_a, coeff.dark_b);
   hsp::DefectivePixelCorrectionIDW dpc;
   dpc.load(coeff.badpixel);
-
+  int i{0};
   for (auto&& frame : L0_data) {
     *output_it++ = dpc(dbc(frame));
+    spdlog::debug("Frame {}", i++);
   }
 }
 
@@ -159,7 +163,17 @@ int main(int argc, char* argv[]) {
       return 0;
     }
 
+    // spdlog settings
+    // spdlog::set_pattern("[hsp] %+");
+    spdlog::set_pattern("%v");
+    spdlog::set_level(spdlog::level::debug);
+    spdlog::info("Branch: {}", git_Branch());
+    spdlog::info("Commit: {}", git_CommitSHA1());
+    spdlog::info("Built on: {} {}", __TIME__, __DATE__);
+
+    // GDAL init
     GDALAllRegister();
+
     std::vector<std::string> input_files;
     if (vm.count("input-file")) {
       input_files = vm["input-file"].as<decltype(input_files)>();
