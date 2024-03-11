@@ -11,6 +11,8 @@
 #ifndef HSP_ALGORITHM_RADIOMETRIC_HPP_
 #define HSP_ALGORITHM_RADIOMETRIC_HPP_
 
+#define __DEBUG__
+
 // C++ Standard
 #include <cmath>
 #include <fstream>
@@ -295,24 +297,24 @@ class DefectivePixelCorrectionSpectral : public UnaryOperation<cv::Mat> {
  */
 class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
  public:
-  using ComputingType = double;
+  using ComputingType = float;
   const ComputingType NaN = std::numeric_limits<ComputingType>::quiet_NaN();
   const ComputingType inf = std::numeric_limits<ComputingType>::infinity();
 
  public:
   cv::Mat operator()(cv::Mat img) const override {
-    cv::Mat1d img_1d, padded;
-    if (img.type() != cv::DataType<ComputingType>::type) {
-      img.convertTo(img_1d, cv::DataType<ComputingType>::type);
+    cv::Mat img_1d, padded;
+    if (img.type() != CV_32F) {
+      img.convertTo(img_1d, CV_32F);
     } else {
       img_1d = img.clone();
     }
-    img_1d.setTo(cv::Scalar::all(NaN), dpm_ != 0);
+    img_1d.setTo(cv::Scalar::all(NaNf), dpm_ != 0);
     cv::copyMakeBorder(img_1d, padded, max_win_spectral_, max_win_spectral_,
                        max_win_spatial_, max_win_spatial_, cv::BORDER_CONSTANT,
-                       NaN);
+                       cv::Scalar_<ComputingType>::all(NaNf));
 
-#pragma omp parallel for
+//#pragma omp parallel for
     for (int i = 0; i < dp_list_.size(); ++i) {
       std::array<uint16_t, 4> log_info{};
       const cv::Point& defective_pixel = dp_list_[i];
@@ -329,21 +331,22 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
                     max_win_spectral_ + defective_pixel.y + win_spectral + 1),
           cv::Range(max_win_spatial_ + defective_pixel.x - win_spatial,
                     max_win_spatial_ + defective_pixel.x + win_spatial + 1));
-      cv::Mat1d window, idw;
+      cv::Mat window, idw;
       cv::transpose(window_t, window);
       cv::transpose(idw_t, idw);
       const cv::Point window_center(window.rows / 2, window.cols / 2);
       double mean_window = cv::mean(window, window == window)[0];
-      cv::Mat1d mean_stddev_window = meanStdDev(window);
-      cv::Mat1d stddev_window = mean_stddev_window.row(1);
-      if (std::any_of(stddev_window.begin(), stddev_window.end(),
-                      [mean_window](double stddev) {
+      cv::Mat mean_stddev_window = meanStdDev(window);
+      cv::Mat stddev_window = mean_stddev_window.row(1);
+      if (std::any_of(stddev_window.begin<ComputingType>(),
+                      stddev_window.end<ComputingType>(),
+                      [mean_window](ComputingType stddev) {
                         return stddev > 0.1 * mean_window;
                       })) {
         double max_DN, min_DN;
         cv::Point max_Loc, min_Loc;
         cv::minMaxLoc(window, &min_DN, &max_DN, &min_Loc, &max_Loc);
-        cv::Mat1d window0 = window.clone();
+        cv::Mat1f window0 = window.clone();
         auto n_max = cv::sum(window0 == max_DN);
         auto n_min = cv::sum(window0 == min_DN);
         window0.setTo(cv::Scalar::all(NaN), window0 == min_DN);
@@ -365,25 +368,10 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
           }
         }
       }
-      // cv::Mat1f window_1f;
-      // window.convertTo(window_1f, cv::DataType<float>::type);
-      // cv::patchNaNs(window_1f, 0.0);
-      cv::Mat1f idw_patched, window_patched;
-      idw.convertTo(idw_patched, CV_32FC1);
-      window.convertTo(window_patched, CV_32FC1);
-      // window_1f.convertTo(window_patched, cv::DataType<ComputingType>::type);
-      idw_patched.setTo(cv::Scalar::all(0.0), window!=window);
-      cv::patchNaNs(idw_patched);
-      cv::patchNaNs(window_patched);
-      auto window_sum = cv::sum(window_patched)[0];
-      auto idw_sum = cv::sum(idw_patched)[0];
-      cv::Mat w1 = idw_patched / cv::sum(idw_patched)[0];
-      cv::Mat prod = window_patched.mul(w1);
-      auto prod_sum = cv::sum(prod)[0];
-      auto patch = static_cast<uint16_t>(std::round(cv::sum(prod)[0]));
+      uint16_t patch = get_patch(window, idw);
       log_info[0] = patch;
       window.at<ComputingType>(window_center.x, window_center.y) = patch;
-      cv::Mat1d spb;
+      cv::Mat1f spb;
       cv::divide(cv::repeat(window.col(window_center.y), 1, window.cols),
                  window, spb);
       // cv::Mat inf_mask = (spb ==
@@ -391,7 +379,7 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
       cv::Mat Tpb = spb.row(window_center.x).clone();
       spb.setTo(cv::Scalar::all(NaN), spb == inf);
       spb.row(window_center.x) = NaN;
-      window.setTo(cv::Scalar::all(NaN), isnan(spb));
+      setCorrespondingToNaN(window, spb);
       auto TA1 = isoutlier(spb);
       auto TA2 = isoutlier(window);
       cv::Mat spb_vec = spb.reshape(0, spb.rows * spb.cols);
@@ -405,7 +393,7 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
       auto stddev_spb = mean_stddev_spb.row(1);
       cv::Mat1i sum = TA1.row(window_center.x) + TA2.row(window_center.x) +
                       isnan(window.row(window_center.x)) + isnan(mean_spb);
-      cv::Mat1d window2;
+      cv::Mat1f window2;
       if (std::any_of(sum.begin(), sum.end(), [](int i) { return i == 0; })) {
         window2 = window.row(window_center.x);
       } else {
@@ -416,20 +404,17 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
           (cv::sum(Tpb <= mean_spb - stddev_spb)[0] != 0 ||
            cv::sum(Tpb >= mean_spb + stddev_spb)[0] != 0 ||
            cv::sum(~isnan(Tpb + mean_spb))[0] == 0)) {
-        cv::Mat1f idw_mid_row;
-        idw.row(window_center.x).convertTo(idw_mid_row, CV_32FC1);
-        idw_mid_row.setTo(cv::Scalar::all(NaN), isnan(window2));
-        idw_mid_row.setTo(cv::Scalar::all(NaN), isnan(mean_spb));
+        cv::Mat1f idw_mid_row = idw.row(window_center.x).clone();
+        //idw_mid_row.setTo(cv::Scalar::all(NaN), isnan(window2));
+        //idw_mid_row.setTo(cv::Scalar::all(NaN), isnan(mean_spb));
+        setCorrespondingToNaN(idw_mid_row, window2);
+        setCorrespondingToNaN(idw_mid_row, mean_spb);
         cv::patchNaNs(idw_mid_row);
         double idw_sum = cv::sum(idw_mid_row)[0];
         if (idw_sum != 0) {
-          cv::Mat1f window2f, mean_spbf;
-          window2.convertTo(window2f, CV_32FC1);
-          mean_spb.convertTo(mean_spbf, CV_32FC1);
-          cv::patchNaNs(window2f);
+          cv::Mat mean_spbf = mean_spb.clone();
           cv::patchNaNs(mean_spbf);
-          auto prod_alt = window2f.mul(mean_spbf).mul(idw_mid_row / idw_sum);
-          auto patch_alt = static_cast<uint16_t>(cv::sum(prod_alt)[0]);
+          uint16_t patch_alt = get_patch(window2.mul(mean_spbf), idw_mid_row);
           log_info[1] = patch_alt;
           if (patch_alt != 0) {
             log_info[3] = 1;
@@ -486,6 +471,24 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
 
  private:
   /**
+  * @brief 计算补丁值
+  */
+   uint16_t get_patch(const cv::Mat& window, const cv::Mat& idw) const {
+     cv::Mat idw_patched = idw.clone();
+     setCorrespondingToNaN(idw_patched, window);
+     cv::Mat window_patched = window.clone();
+    cv::patchNaNs(window_patched);
+     cv::patchNaNs(idw_patched);
+#ifdef __DEBUG__
+    auto window_sum = cv::sum(window_patched)[0];
+    auto idw_sum = cv::sum(idw_patched)[0];
+    cv::Mat w1 = idw_patched / cv::sum(idw_patched)[0];
+#endif
+    cv::MatExpr prod = window_patched.mul(idw_patched / cv::sum(idw_patched)[0]);
+    return static_cast<uint16_t>(std::round(cv::sum(prod)[0]));
+  }
+
+  /**
    * @brief 将盲元矩阵转为盲元列表
    *
    */
@@ -506,19 +509,20 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
    * @param cols 矩阵列数
    * @return cv::Mat
    */
-  cv::Mat1d get_inverse_weights_table(int rows, int cols) {
+  cv::Mat1f get_inverse_weights_table(int rows, int cols) const {
     cv::Point center(rows / 2, cols / 2);
-    cv::Mat1d col_idx = cv::Mat::zeros(1, cols, cv::DataType<double>::type);
+    cv::Mat1f col_idx = cv::Mat::zeros(1, cols, cv::DataType<ComputingType>::type);
     std::iota(col_idx.begin(), col_idx.end(), 0);
     cv::Mat col_idx_mat = cv::repeat(col_idx, rows, 1);
-    cv::Mat1d row_idx = cv::Mat::zeros(rows, 1, cv::DataType<double>::type);
+    cv::Mat1f row_idx =
+        cv::Mat::zeros(rows, 1, cv::DataType<ComputingType>::type);
     std::iota(row_idx.begin(), row_idx.end(), 0);
     cv::Mat row_idx_mat = cv::repeat(row_idx, 1, cols);
 
-    cv::Mat1d distance, inv_d;
+    cv::Mat1f distance, inv_d;
     cv::magnitude(center.x - row_idx_mat, center.y - col_idx_mat, distance);
     cv::divide(1.0, distance, inv_d);
-    inv_d.at<double>(center.x, center.y) = 0;
+    inv_d.at<ComputingType>(center.x, center.y) = 0;
     return inv_d;
   }
 

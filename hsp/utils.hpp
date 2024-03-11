@@ -96,21 +96,21 @@ cv::Mat load_text(const std::string& filename) {
  * NaN不参与计算。
  *
  */
-inline cv::Mat1d median(const cv::Mat& m) {
-  cv::Mat1d m_d;
-  if (m.type() != CV_64FC1) {
-    m.convertTo(m_d, CV_64FC1);
+inline cv::Mat1f median(const cv::Mat& m) {
+  cv::Mat1f m_d;
+  if (m.type() != CV_32F) {
+    m.convertTo(m_d, CV_32F);
   } else {
     m_d = m;
   }
-  cv::Mat1d res = cv::Mat::zeros(1, m.cols, CV_64FC1);
+  cv::Mat1f res = cv::Mat::zeros(1, m.cols, CV_32F);
   auto col_median = res.begin();
 
   for (int i = 0; i < m.cols; ++i) {
-    std::vector<double> column(m.rows, NaNd);
+    std::vector<float> column(m.rows, NaNf);
     int size{0};
     for (int j = 0; j < m.rows; ++j) {
-      auto val = m_d.at<double>(j, i);
+      auto val = m_d.at<float>(j, i);
       if (!std::isnan(val)) {
         column[size++] = val;
       }
@@ -140,14 +140,14 @@ inline cv::Mat1d median(const cv::Mat& m) {
  * NaN不参与计算。
  *
  */
-inline cv::Mat1d mean(const cv::Mat& m) {
+inline cv::Mat1f mean(const cv::Mat& m) {
   cv::Mat m_T;
   cv::transpose(m, m_T);
-  cv::Mat res(1, m.cols, CV_64FC1, NaNd);
+  cv::Mat res(1, m.cols, CV_32F, NaNf);
   for (int i = 0; i < m.cols; ++i) {
     auto each_row = m_T.row(i);
     auto row_mean = cv::mean(each_row, each_row == each_row);
-    res.at<double>(0, i) = row_mean[0];
+    res.at<float>(0, i) = row_mean[0];
   }
   return res;
 }
@@ -164,7 +164,7 @@ inline cv::Mat1d mean(const cv::Mat& m) {
 inline cv::Mat isoutlier(const cv::Mat& m) {
   constexpr double erfcinv_1_5 = -0.476936276204470;
   constexpr double sqrt2 = 1.41421;
-  constexpr double c = -1.0 / (sqrt2 * erfcinv_1_5);
+  constexpr float c = -1.0 / (sqrt2 * erfcinv_1_5);
   auto m_median = cv::repeat(median(m), m.rows, 1);
   auto scaled_MAD = c * median(cv::abs(m - m_median));
   return m - m_median > 3 * cv::repeat(scaled_MAD, m.rows, 1);
@@ -173,22 +173,22 @@ inline cv::Mat isoutlier(const cv::Mat& m) {
 /**
  * @brief 分别计算矩阵各列的均值和标准差。忽略NaN。
  */
-inline cv::Mat1d meanStdDev(const cv::Mat& m) {
-  cv::Mat1d m_T;
+inline cv::Mat1f meanStdDev(const cv::Mat& m) {
+  cv::Mat1f m_T;
   cv::transpose(m, m_T);
   auto mask = (m_T == m_T);
-  cv::Mat res(2, m_T.rows, CV_64FC1, NaNd);
+  cv::Mat res(2, m_T.rows, CV_32F, NaNf);
   for (int i = 0; i < m_T.rows; ++i) {
-    cv::Mat1d mean, stddev;
-    cv::Mat1d row = m_T.row(i);
+    cv::Mat mean, stddev;
+    cv::Mat1f row = m_T.row(i);
     if (std::all_of(row.begin(), row.end(),
-                    [](double val) { return std::isnan(val); })) {
-      res.at<double>(0, i) = NaNd;
-      res.at<double>(1, i) = NaNd;
+                    [](float val) { return std::isnan(val); })) {
+      res.at<float>(0, i) = NaNf;
+      res.at<float>(1, i) = NaNf;
     } else {
       cv::meanStdDev(m_T.row(i), mean, stddev, mask.row(i));
-      res.at<double>(0, i) = mean.at<double>(0, 0);
-      res.at<double>(1, i) = stddev.at<double>(0, 0);
+      res.at<float>(0, i) = static_cast<float>(mean.at<double>(0, 0));
+      res.at<float>(1, i) = static_cast<float>(stddev.at<double>(0, 0));
     }
   }
   return res;
@@ -205,6 +205,12 @@ inline cv::MatExpr isnan(const cv::Mat& m) { return m != m; }
 */
 inline bool isAllNaN(const cv::Mat& m) { return cv::countNonZero(~isnan(m)) == 0; }
 
+
+/**
+* @brief 如果mask中元素的为NaN，则将m中的对应位置的元素也设为NaN。
+* 
+*/
+inline void setCorrespondingToNaN(cv::Mat m, const cv::Mat& mask) { m = m + mask * 0; }
 
 }  // namespace hsp
 

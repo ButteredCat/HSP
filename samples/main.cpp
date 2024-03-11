@@ -128,7 +128,7 @@ void raw_process(Input input, Coeff coeff, std::string output) {
  */
 int main(int argc, char* argv[]) {
   auto start = system_clock::now();
-  try {
+  //try {
     po::options_description generic("Generic options");
     generic.add_options()("version,v", "print version string")(
         "help", "produce help message")("config,c", po::value<std::string>(),
@@ -185,7 +185,7 @@ int main(int argc, char* argv[]) {
         opt.allow_trailing_commas = true;
         Order order = json::value_to<Order>(json::parse(input, {}, opt));
 
-#pragma omp parallel for
+//#pragma omp parallel for
         for (int i = 0; i < order.inputs.size(); ++i) {
           if (order.inputs[i].is_raw) {
             raw_process(order.inputs[i], order.coeff, order.outputs.at(i));
@@ -196,9 +196,9 @@ int main(int argc, char* argv[]) {
       }
     }
 
-  } catch (const std::exception& e) {
-    std::cerr << e.what();
-  }
+  //} catch (const std::exception& e) {
+  //  std::cerr << e.what();
+  //}
   // 输出计算耗时
   auto end_time = system_clock::now();
   auto duration = duration_cast<microseconds>(end_time - start);
