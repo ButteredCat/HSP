@@ -313,8 +313,9 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
     cv::copyMakeBorder(img_1d, padded, max_win_spectral_, max_win_spectral_,
                        max_win_spatial_, max_win_spatial_, cv::BORDER_CONSTANT,
                        cv::Scalar_<ComputingType>::all(NaNf));
-
-//#pragma omp parallel for
+#ifndef __DEBUG__
+#pragma omp parallel for
+#endif // __DEBUG__
     for (int i = 0; i < dp_list_.size(); ++i) {
       std::array<uint16_t, 4> log_info{};
       const cv::Point& defective_pixel = dp_list_[i];
