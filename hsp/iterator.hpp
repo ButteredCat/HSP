@@ -120,12 +120,12 @@ class InputIterator_
   }
 
  private:
-  GDALDataset* dataset_;
-  int n_samples_;
-  int n_lines_;
-  int n_bands_;
-  int cur_;
-  int max_idx_;
+  GDALDataset* dataset_{nullptr};
+  int n_samples_{0};
+  int n_lines_{0};
+  int n_bands_{0};
+  int cur_{0};
+  int max_idx_{0};
   cv::Mat img_;
 
  private:
@@ -316,11 +316,11 @@ class OutputIterator_
   OutputIterator_& operator*() { return *this; }
 
  private:
-  GDALDataset* dataset_;
-  int n_samples_;
-  int n_lines_;
-  int n_bands_;
-  int cur_;
+  GDALDataset* dataset_{nullptr};
+  int n_samples_{0};
+  int n_lines_{0};
+  int n_bands_{0};
+  int cur_{0};
 
  private:
   void init_() {

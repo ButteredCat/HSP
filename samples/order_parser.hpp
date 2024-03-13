@@ -23,7 +23,7 @@ namespace json = boost::json;
 namespace parser {
 struct Input {
   std::string filename;
-  bool is_raw;
+  bool is_raw{false};
 
   friend Input tag_invoke(boost::json::value_to_tag<Input>,
                           boost::json::value const& v);
