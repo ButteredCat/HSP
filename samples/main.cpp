@@ -166,7 +166,7 @@ int main(int argc, char* argv[]) {
     // spdlog settings
     // spdlog::set_pattern("[hsp] %+");
     spdlog::set_pattern("%v");
-    spdlog::set_level(spdlog::level::debug);
+    spdlog::set_level(spdlog::level::info);
     spdlog::info("Branch: {}", git_Branch());
     spdlog::info("Commit: {}", git_CommitSHA1());
     spdlog::info("Built on: {} {}", __TIME__, __DATE__);

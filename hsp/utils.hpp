@@ -36,6 +36,8 @@ constexpr double NaNd = std::numeric_limits<double>::quiet_NaN();
 
 constexpr float NaNf = std::numeric_limits<float>::quiet_NaN();
 
+constexpr float Invalid = -1.0;
+
 /**
  * @brief 载入栅格系数。
  *
@@ -88,12 +90,30 @@ cv::Mat load_text(const std::string& filename) {
 }
 
 /**
+ * @brief 判断浮点数是否为HSP定义的无效值。
+ * 
+ * @param val 
+ * @return true val是无效值。
+ * @return false val不是无效值。
+ */
+inline bool isInvalid(float val) { return val < 0; }
+
+/**
+ * @brief 判断矩阵元素是否为HSP定义的有效值。
+ * 
+ * @param m 
+ * @return cv::MatExpr 返回的矩阵中，无效值对应位置的元素为非0值，
+ * 非无效值对应位置的元素为0。
+ */
+inline cv::MatExpr isInvalid(const cv::Mat& m) { return m < 0; }
+
+/**
  * @brief 计算输入矩阵各列中位数。
  *
  * @details
  * 先对各列排序。如果列中元素个数为奇数，中值为排序后的中间元素；
  * 如果元素个数为偶数，中值为排序后中间2个元素的均值。
- * NaN不参与计算。
+ * 无效值不参与计算。
  *
  */
 inline cv::Mat1f median(const cv::Mat& m) {
@@ -107,11 +127,11 @@ inline cv::Mat1f median(const cv::Mat& m) {
   auto col_median = res.begin();
 
   for (int i = 0; i < m.cols; ++i) {
-    std::vector<float> column(m.rows, NaNf);
+    std::vector<float> column(m.rows, Invalid);
     int size{0};
     for (int j = 0; j < m.rows; ++j) {
       auto val = m_d.at<float>(j, i);
-      if (!std::isnan(val)) {
+      if (!isInvalid(val)) {
         column[size++] = val;
       }
     }
@@ -134,19 +154,16 @@ inline cv::Mat1f median(const cv::Mat& m) {
 }
 
 /**
- * @brief 计算各列均值。
- *
- * @details
- * NaN不参与计算。
+ * @brief 计算各列均值（无效值不参与计算）。
  *
  */
-inline cv::Mat1f mean(const cv::Mat& m) {
+inline cv::Mat mean(const cv::Mat& m) {
   cv::Mat m_T;
   cv::transpose(m, m_T);
-  cv::Mat res(1, m.cols, CV_32F, NaNf);
+  cv::Mat res(1, m.cols, CV_32F, Invalid);
   for (int i = 0; i < m.cols; ++i) {
     auto each_row = m_T.row(i);
-    auto row_mean = cv::mean(each_row, each_row == each_row);
+    auto row_mean = cv::mean(each_row, ~isInvalid(each_row));
     res.at<float>(0, i) = row_mean[0];
   }
   return res;
@@ -157,7 +174,7 @@ inline cv::Mat1f mean(const cv::Mat& m) {
  *
  * @details
  * 查找输入矩阵中每一列的离群值。离群值是指与中位数相差超过三倍经过换算的中位数绝对偏差
- * (scaled MAD) 的值。元素NaN不认为是离群值。
+ * (scaled MAD) 的值。无效值不认为是离群值。
  * 实现了与MATLAB中同名函数类似的功能。
  *
  */
@@ -171,20 +188,20 @@ inline cv::Mat isoutlier(const cv::Mat& m) {
 }
 
 /**
- * @brief 分别计算矩阵各列的均值和标准差。忽略NaN。
+ * @brief 分别计算矩阵各列的均值和标准差（无效值不参与计算）。
  */
-inline cv::Mat1f meanStdDev(const cv::Mat& m) {
-  cv::Mat1f m_T;
+inline cv::Mat meanStdDev(const cv::Mat& m) {
+  cv::Mat m_T;
   cv::transpose(m, m_T);
-  auto mask = (m_T == m_T);
-  cv::Mat res(2, m_T.rows, CV_32F, NaNf);
+  auto mask = ~isInvalid(m_T);
+  cv::Mat res(2, m_T.rows, CV_32F, Invalid);
   for (int i = 0; i < m_T.rows; ++i) {
     cv::Mat mean, stddev;
     cv::Mat1f row = m_T.row(i);
     if (std::all_of(row.begin(), row.end(),
-                    [](float val) { return std::isnan(val); })) {
-      res.at<float>(0, i) = NaNf;
-      res.at<float>(1, i) = NaNf;
+                    [](float val) { return isInvalid(val); })) {
+      res.at<float>(0, i) = Invalid;
+      res.at<float>(1, i) = Invalid;
     } else {
       cv::meanStdDev(m_T.row(i), mean, stddev, mask.row(i));
       res.at<float>(0, i) = static_cast<float>(mean.at<double>(0, 0));
@@ -193,24 +210,6 @@ inline cv::Mat1f meanStdDev(const cv::Mat& m) {
   }
   return res;
 }
-
-/**
- * @brief 判断矩阵元素是否为NaN。
- *
- */
-inline cv::MatExpr isnan(const cv::Mat& m) { return m != m; }
-
-/**
-* @brief 判断是否矩阵所有元素均为NaN。
-*/
-inline bool isAllNaN(const cv::Mat& m) { return cv::countNonZero(~isnan(m)) == 0; }
-
-
-/**
-* @brief 如果mask中元素的为NaN，则将m中的对应位置的元素也设为NaN。
-* 
-*/
-inline void setCorrespondingToNaN(cv::Mat m, const cv::Mat& mask) { m = m + mask * 0; }
 
 }  // namespace hsp
 

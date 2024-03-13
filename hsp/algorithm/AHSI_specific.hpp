@@ -74,7 +74,7 @@ class GF501A_DBC {
   GpuMat operator()(const hsp::AHSIFrame& frame) {
     GpuMat img_orig, img, idx_res, dark_res, sub_res, res;
     img_orig.upload(frame.data);
-    img_orig.convertTo(img, cv::DataType<double>::type);
+    img_orig.convertTo(img, cv::DataType<float>::type);
     multiply(a_, frame.index, idx_res);
     add(idx_res, b_, dark_res);
     subtract(img, dark_res, sub_res);
@@ -82,8 +82,8 @@ class GF501A_DBC {
     return res;
   }
   void load(const std::string& dark_a, const std::string& dark_b) {
-    cv::Mat a0 = load_raster<double>(dark_a);
-    cv::Mat b0 = load_raster<double>(dark_b);
+    cv::Mat a0 = load_raster<float>(dark_a);
+    cv::Mat b0 = load_raster<float>(dark_b);
     a_.upload(a0);
     b_.upload(b0);
   }
@@ -104,7 +104,7 @@ class GF501A_VN_proc {
   cv::Mat operator()(const AHSIFrame& frame) {
     GpuMat img_orig, img, img_res, idx_res, sub_res, res_gpu, res_uint;
     img_orig.upload(frame.data);
-    img_orig.convertTo(img, cv::DataType<double>::type);
+    img_orig.convertTo(img, cv::DataType<float>::type);
     multiply(img, img_gain_, img_res);
     multiply(idx_gain_, frame.index, idx_res);
     subtract(img_res, idx_res, sub_res);
@@ -118,12 +118,12 @@ class GF501A_VN_proc {
   void load(const std::string& dark_a, const std::string& dark_b,
             const std::string& etalon_a, const std::string& etalon_b,
             const std::string& rel_a, const std::string& rel_b) {
-    auto a0 = load_raster<double>(dark_a);
-    auto b0 = load_raster<double>(dark_b);
-    auto a1 = load_raster<double>(etalon_a);
-    auto b1 = load_raster<double>(etalon_b);
-    auto a2 = load_raster<double>(rel_a);
-    auto b2 = load_raster<double>(rel_b);
+    auto a0 = load_raster<float>(dark_a);
+    auto b0 = load_raster<float>(dark_b);
+    auto a1 = load_raster<float>(etalon_a);
+    auto b1 = load_raster<float>(etalon_b);
+    auto a2 = load_raster<float>(rel_a);
+    auto b2 = load_raster<float>(rel_b);
     cv::Mat img_gain = a1.mul(a2);
     cv::Mat idx_gain = a0.mul(a1).mul(a2);
     cv::Mat offset = b1.mul(a2) + b2 - a1.mul(a2).mul(b0);

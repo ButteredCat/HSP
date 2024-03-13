@@ -11,7 +11,7 @@
 #ifndef HSP_ALGORITHM_RADIOMETRIC_HPP_
 #define HSP_ALGORITHM_RADIOMETRIC_HPP_
 
-#define __DEBUG__
+// #define __DEBUG__
 
 // C++ Standard
 #include <cmath>
@@ -27,7 +27,9 @@
 #include <opencv2/photo.hpp>
 
 // spdlog
+#ifdef __DEBUG__
 #include <spdlog/spdlog.h>
+#endif
 
 // project
 #include "../gdal_traits.hpp"
@@ -44,7 +46,7 @@ namespace hsp {
  *
  * @note 配合行迭代器使用。
  */
-template <typename T>
+template <typename T_coeff = float>
 class DarkBackgroundCorrection : public UnaryOperation<cv::Mat> {
  public:
   cv::Mat operator()(cv::Mat m) const override { return m - m_; }
@@ -56,7 +58,7 @@ class DarkBackgroundCorrection : public UnaryOperation<cv::Mat> {
    */
   void load(const std::string& filename) {
     // if (gdal::IsRasterDataset(filename.c_str())) {
-    m_ = load_raster<T>(filename.c_str());
+    m_ = load_raster<T_coeff>(filename.c_str());
     // } else {
     //   m_ = load_text<T>(filename.c_str());
     // }
@@ -309,13 +311,13 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
     } else {
       img_1d = img.clone();
     }
-    img_1d.setTo(cv::Scalar::all(NaNf), dpm_ != 0);
+    img_1d.setTo(cv::Scalar::all(Invalid), dpm_ != 0);
     cv::copyMakeBorder(img_1d, padded, max_win_spectral_, max_win_spectral_,
                        max_win_spatial_, max_win_spatial_, cv::BORDER_CONSTANT,
-                       cv::Scalar_<ComputingType>::all(NaNf));
+                       cv::Scalar_<ComputingType>::all(Invalid));
 #ifndef __DEBUG__
 #pragma omp parallel for
-#endif // __DEBUG__
+#endif  // __DEBUG__
     for (int i = 0; i < dp_list_.size(); ++i) {
       std::array<uint16_t, 4> log_info{};
       const cv::Point& defective_pixel = dp_list_[i];
@@ -350,20 +352,18 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
         cv::Mat1f window0 = window.clone();
         auto n_max = cv::sum(window0 == max_DN);
         auto n_min = cv::sum(window0 == min_DN);
-        window0.setTo(cv::Scalar::all(NaN), window0 == min_DN);
-        window0.setTo(cv::Scalar::all(NaN), window0 == max_DN);
-        cv::Mat ratio;
-        cv::divide(cv::repeat(window0.col(window_center.y), 1, window0.cols),
-                   window0, ratio);
-        if (!isAllNaN(ratio)) {
-          auto mst1 = median(window0);
+        window0.setTo(cv::Scalar::all(Invalid), window0 == min_DN);
+        window0.setTo(cv::Scalar::all(Invalid), window0 == max_DN);
+        auto mst1 = median(window0);
+        cv::Mat ratio = get_ratio_mat(window0);
+        if (cv::countNonZero(isInvalid(ratio)) != 0) {
           auto alt_max = mst1.at<ComputingType>(0, max_Loc.x);
           auto alt_min = mst1.at<ComputingType>(0, min_Loc.x);
-          if (!std::isnan(alt_max)) {
+          if (!isInvalid(alt_max)) {
             window.setTo(cv::Scalar::all(alt_max), window == max_DN);
             log_info[2] = 1;
           }
-          if (!std::isnan(alt_min)) {
+          if (!isInvalid(alt_min)) {
             window.setTo(cv::Scalar::all(alt_min), window == min_DN);
             log_info[2] = 1;
           }
@@ -372,29 +372,28 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
       uint16_t patch = get_patch(window, idw);
       log_info[0] = patch;
       window.at<ComputingType>(window_center.x, window_center.y) = patch;
-      cv::Mat1f spb;
-      cv::divide(cv::repeat(window.col(window_center.y), 1, window.cols),
-                 window, spb);
+      cv::Mat spb = get_ratio_mat(window);
       // cv::Mat inf_mask = (spb ==
       // std::numeric_limits<ComputingType>::infinity());
       cv::Mat Tpb = spb.row(window_center.x).clone();
-      spb.setTo(cv::Scalar::all(NaN), spb == inf);
-      spb.row(window_center.x) = NaN;
-      setCorrespondingToNaN(window, spb);
+      spb.row(window_center.x) = Invalid;
+      // setCorrespondingToNaN(window, spb);
+      window.setTo(cv::Scalar::all(Invalid), isInvalid(spb));
       auto TA1 = isoutlier(spb);
       auto TA2 = isoutlier(window);
       cv::Mat spb_vec = spb.reshape(0, spb.rows * spb.cols);
       auto TA3 = isoutlier(spb_vec).reshape(0, spb.rows);
       cv::MatExpr outlier_mask = (TA1 + TA2 + TA3 != 0);
-      spb.setTo(cv::Scalar::all(NaN), outlier_mask);
-      spb.setTo(cv::Scalar::all(NaN), spb == 0);
-      window.setTo(cv::Scalar::all(NaN), outlier_mask);
+      spb.setTo(cv::Scalar::all(Invalid), outlier_mask);
+      spb.setTo(cv::Scalar::all(Invalid), spb == 0);
+      window.setTo(cv::Scalar::all(Invalid), outlier_mask);
       auto mean_stddev_spb = meanStdDev(spb);
       auto mean_spb = mean_stddev_spb.row(0);
       auto stddev_spb = mean_stddev_spb.row(1);
       cv::Mat1i sum = TA1.row(window_center.x) + TA2.row(window_center.x) +
-                      isnan(window.row(window_center.x)) + isnan(mean_spb);
-      cv::Mat1f window2;
+                      isInvalid(window.row(window_center.x)) +
+                      isInvalid(mean_spb);
+      cv::Mat window2;
       if (std::any_of(sum.begin(), sum.end(), [](int i) { return i == 0; })) {
         window2 = window.row(window_center.x);
       } else {
@@ -404,29 +403,31 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
       if (win_spatial < 0.8 * img.rows && win_spectral < 0.8 * img.cols &&
           (cv::sum(Tpb <= mean_spb - stddev_spb)[0] != 0 ||
            cv::sum(Tpb >= mean_spb + stddev_spb)[0] != 0 ||
-           cv::sum(~isnan(Tpb + mean_spb))[0] == 0)) {
-        cv::Mat1f idw_mid_row = idw.row(window_center.x).clone();
-        //idw_mid_row.setTo(cv::Scalar::all(NaN), isnan(window2));
-        //idw_mid_row.setTo(cv::Scalar::all(NaN), isnan(mean_spb));
-        setCorrespondingToNaN(idw_mid_row, window2);
-        setCorrespondingToNaN(idw_mid_row, mean_spb);
-        cv::patchNaNs(idw_mid_row);
-        double idw_sum = cv::sum(idw_mid_row)[0];
-        if (idw_sum != 0) {
-          cv::Mat mean_spbf = mean_spb.clone();
-          cv::patchNaNs(mean_spbf);
-          uint16_t patch_alt = get_patch(window2.mul(mean_spbf), idw_mid_row);
-          log_info[1] = patch_alt;
-          if (patch_alt != 0) {
-            log_info[3] = 1;
-            patch = patch_alt;
-          }
+           cv::sum(~isInvalid(Tpb + mean_spb))[0] == 0)) {
+        cv::Mat idw_mid_row = idw.row(window_center.x).clone();
+        idw_mid_row.setTo(cv::Scalar::all(0.0), isInvalid(window2));
+        idw_mid_row.setTo(cv::Scalar::all(0.0), isInvalid(mean_spb));
+        // setCorrespondingToNaN(idw_mid_row, window2);
+        // setCorrespondingToNaN(idw_mid_row, mean_spb);
+        // cv::patchNaNs(idw_mid_row);
+
+        // cv::Mat mean_spbf = mean_spb.clone();
+        //  cv::patchNaNs(mean_spbf);
+        // mean_spb.setTo(cv::Scalar::all(0.0), isInvalid(mean_spb));
+        // window2.setTo(cv::Scalar::all(0.0), isInvalid(window2));
+        uint16_t patch_alt = get_patch(window2.mul(mean_spb), idw_mid_row);
+        log_info[1] = patch_alt;
+        if (patch_alt != 0) {
+          log_info[3] = 1;
+          patch = patch_alt;
         }
       }
       img.at<uint16_t>(defective_pixel) = patch;
+#ifdef __DEBUG__
       spdlog::debug("({}, {}), patch={}, patch_alt={}, final={}, repaired={}",
                     defective_pixel.y, defective_pixel.x, log_info[0],
                     log_info[1], patch, log_info[2]);
+#endif
     }
     return img;
   }
@@ -472,20 +473,30 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
 
  private:
   /**
-  * @brief 计算补丁值
-  */
-   uint16_t get_patch(const cv::Mat& window, const cv::Mat& idw) const {
-     cv::Mat idw_patched = idw.clone();
-     setCorrespondingToNaN(idw_patched, window);
-     cv::Mat window_patched = window.clone();
-    cv::patchNaNs(window_patched);
-     cv::patchNaNs(idw_patched);
-#ifdef __DEBUG__
-    auto window_sum = cv::sum(window_patched)[0];
-    auto idw_sum = cv::sum(idw_patched)[0];
-    cv::Mat w1 = idw_patched / cv::sum(idw_patched)[0];
-#endif
-    cv::MatExpr prod = window_patched.mul(idw_patched / cv::sum(idw_patched)[0]);
+   * @brief
+   *
+   */
+  cv::Mat get_ratio_mat(const cv::Mat& m) const {
+    cv::Mat res;
+    cv::Mat m1 = m.clone();
+    m1.setTo(cv::Scalar::all(0.0), isInvalid(m1));
+    cv::divide(cv::repeat(m.col(m.cols / 2), 1, m.cols), m1, res);
+    cv::patchNaNs(res, Invalid);
+    res.setTo(cv::Scalar::all(Invalid), res == inf);
+    return res;
+  }
+
+  /**
+   * @brief 计算补丁值
+   */
+  uint16_t get_patch(const cv::Mat& window, const cv::Mat& idw) const {
+    cv::Mat idw_patched = idw.clone();
+    idw_patched.setTo(cv::Scalar::all(0.0), isInvalid(window));
+    double idw_sum = cv::sum(idw_patched)[0];
+    if (idw_sum == 0) {
+      return 0;
+    }
+    cv::MatExpr prod = window.mul(idw_patched / cv::sum(idw_patched)[0]);
     return static_cast<uint16_t>(std::round(cv::sum(prod)[0]));
   }
 
@@ -512,7 +523,8 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
    */
   cv::Mat1f get_inverse_weights_table(int rows, int cols) const {
     cv::Point center(rows / 2, cols / 2);
-    cv::Mat1f col_idx = cv::Mat::zeros(1, cols, cv::DataType<ComputingType>::type);
+    cv::Mat1f col_idx =
+        cv::Mat::zeros(1, cols, cv::DataType<ComputingType>::type);
     std::iota(col_idx.begin(), col_idx.end(), 0);
     cv::Mat col_idx_mat = cv::repeat(col_idx, rows, 1);
     cv::Mat1f row_idx =
