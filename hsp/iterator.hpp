@@ -120,7 +120,7 @@ class InputIterator_
   }
 
  private:
-  GDALDataset* dataset_{nullptr};
+  GDALDataset* dataset_;
   int n_samples_{0};
   int n_lines_{0};
   int n_bands_{0};
@@ -316,7 +316,7 @@ class OutputIterator_
   OutputIterator_& operator*() { return *this; }
 
  private:
-  GDALDataset* dataset_{nullptr};
+  GDALDataset* dataset_;
   int n_samples_{0};
   int n_lines_{0};
   int n_bands_{0};
