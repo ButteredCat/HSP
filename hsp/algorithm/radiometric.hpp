@@ -348,7 +348,8 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
                       })) {
         double max_DN, min_DN;
         cv::Point max_Loc, min_Loc;
-        cv::minMaxLoc(window, &min_DN, &max_DN, &min_Loc, &max_Loc);
+        cv::minMaxLoc(window, &min_DN, &max_DN, &min_Loc, &max_Loc,
+                      ~isInvalid(window));
         cv::Mat1f window0 = window.clone();
         auto n_max = cv::sum(window0 == max_DN);
         auto n_min = cv::sum(window0 == min_DN);
