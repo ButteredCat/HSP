@@ -300,7 +300,6 @@ class DefectivePixelCorrectionSpectral : public UnaryOperation<cv::Mat> {
 class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
  public:
   using ComputingType = float;
-  const ComputingType NaN = std::numeric_limits<ComputingType>::quiet_NaN();
   const ComputingType inf = std::numeric_limits<ComputingType>::infinity();
 
  public:
@@ -314,12 +313,12 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
     img_1d.setTo(cv::Scalar::all(Invalid), dpm_ != 0);
     cv::copyMakeBorder(img_1d, padded, max_win_spectral_, max_win_spectral_,
                        max_win_spatial_, max_win_spatial_, cv::BORDER_CONSTANT,
-                       cv::Scalar_<ComputingType>::all(Invalid));
+                       cv::Scalar::all(Invalid));
 #ifndef __DEBUG__
 #pragma omp parallel for
 #endif  // __DEBUG__
     for (int i = 0; i < dp_list_.size(); ++i) {
-      std::array<uint16_t, 4> log_info{};
+      int repaired{0};
       const cv::Point& defective_pixel = dp_list_[i];
       auto win_spatial = row_label_.at<LabelType>(defective_pixel);
       auto win_spectral = col_label_.at<LabelType>(defective_pixel);
@@ -362,16 +361,16 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
           auto alt_min = mst1.at<ComputingType>(0, min_Loc.x);
           if (!isInvalid(alt_max)) {
             window.setTo(cv::Scalar::all(alt_max), window == max_DN);
-            log_info[2] = 1;
+            repaired = 1;
           }
           if (!isInvalid(alt_min)) {
             window.setTo(cv::Scalar::all(alt_min), window == min_DN);
-            log_info[2] = 1;
+            repaired = 1;
           }
         }
       }
-      uint16_t patch = get_patch(window, idw);
-      log_info[0] = patch;
+      uint16_t patch{0}, patch_alt{0};
+      patch = get_patch(window, idw);
       window.at<ComputingType>(window_center.x, window_center.y) = patch;
       cv::Mat spb = get_ratio_mat(window);
       cv::Mat Tpb = spb.row(window_center.x).clone();
@@ -405,18 +404,13 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
         cv::Mat idw_mid_row = idw.row(window_center.x).clone();
         idw_mid_row.setTo(cv::Scalar::all(0.0), isInvalid(window2));
         idw_mid_row.setTo(cv::Scalar::all(0.0), isInvalid(mean_spb));
-        uint16_t patch_alt = get_patch(window2.mul(mean_spb), idw_mid_row);
-        log_info[1] = patch_alt;
-        if (patch_alt != 0) {
-          log_info[3] = 1;
-          patch = patch_alt;
-        }
+        patch_alt = get_patch(window2.mul(mean_spb), idw_mid_row);
       }
-      img.at<uint16_t>(defective_pixel) = patch;
+      img.at<uint16_t>(defective_pixel) = (patch_alt != 0) ? patch_alt : patch;
 #ifdef __DEBUG__
       spdlog::debug("({}, {}), patch={}, patch_alt={}, final={}, repaired={}",
-                    defective_pixel.y, defective_pixel.x, log_info[0],
-                    log_info[1], patch, log_info[2]);
+                    defective_pixel.y, defective_pixel.x, patch, patch_alt,
+                    img.at<uint16_t>(defective_pixel), repaired);
 #endif
     }
     return img;
@@ -463,7 +457,7 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
 
  private:
   /**
-   * @brief
+   * @brief 将m的中间列重复，再除以m。无效值的位置将保持无效。
    *
    */
   cv::Mat get_ratio_mat(const cv::Mat& m) const {
@@ -477,7 +471,11 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
   }
 
   /**
-   * @brief 计算补丁值
+   * @brief 计算补丁值。
+   *
+   * @param window 用于计算补丁的图像窗口。
+   * @param idw 和窗口同样大小的反距离权重矩阵。
+   * @return uint16_t 补丁值。
    */
   uint16_t get_patch(const cv::Mat& window, const cv::Mat& idw) const {
     cv::Mat idw_patched = idw.clone();
@@ -491,13 +489,14 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
   }
 
   /**
-   * @brief 将盲元矩阵转为盲元列表
+   * @brief 将盲元矩阵转为盲元列表。
    *
    */
   void construct_dp_list() {
     for (int i = 0; i < dpm_.rows; ++i) {
+      const uint8_t* dpm_i = dpm_.ptr<uint8_t>(i);
       for (int j = 0; j < dpm_.cols; ++j) {
-        if (dpm_.at<uint8_t>(i, j) == 1) {
+        if (dpm_i[j] != 0) {
           dp_list_.emplace_back(j, i);
         }
       }
