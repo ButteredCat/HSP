@@ -91,8 +91,8 @@ cv::Mat load_text(const std::string& filename) {
 
 /**
  * @brief 判断浮点数是否为HSP定义的无效值。
- * 
- * @param val 
+ *
+ * @param val
  * @return true val是无效值。
  * @return false val不是无效值。
  */
@@ -100,8 +100,8 @@ inline bool isInvalid(float val) { return val < 0; }
 
 /**
  * @brief 判断矩阵元素是否为HSP定义的有效值。
- * 
- * @param m 
+ *
+ * @param m
  * @return cv::MatExpr 返回的矩阵中，无效值对应位置的元素为非0值，
  * 非无效值对应位置的元素为0。
  */
@@ -117,11 +117,11 @@ inline cv::MatExpr isInvalid(const cv::Mat& m) { return m < 0; }
  *
  */
 inline cv::Mat1f median(const cv::Mat& m) {
-  cv::Mat1f m_d;
+  cv::Mat1f m_f;
   if (m.type() != CV_32F) {
-    m.convertTo(m_d, CV_32F);
+    m.convertTo(m_f, CV_32F);
   } else {
-    m_d = m;
+    m_f = m;
   }
   cv::Mat1f res = cv::Mat::zeros(1, m.cols, CV_32F);
   auto col_median = res.begin();
@@ -130,7 +130,7 @@ inline cv::Mat1f median(const cv::Mat& m) {
     std::vector<float> column(m.rows, Invalid);
     int size{0};
     for (int j = 0; j < m.rows; ++j) {
-      auto val = m_d.at<float>(j, i);
+      const float& val = m_f.at<float>(j, i);
       if (!isInvalid(val)) {
         column[size++] = val;
       }
@@ -163,8 +163,7 @@ inline cv::Mat mean(const cv::Mat& m) {
   cv::Mat res(1, m.cols, CV_32F, Invalid);
   for (int i = 0; i < m.cols; ++i) {
     auto each_row = m_T.row(i);
-    auto row_mean = cv::mean(each_row, ~isInvalid(each_row));
-    res.at<float>(0, i) = row_mean[0];
+    res.at<float>(0, i) = cv::mean(each_row, ~isInvalid(each_row))[0];
   }
   return res;
 }
@@ -198,11 +197,8 @@ inline cv::Mat meanStdDev(const cv::Mat& m) {
   for (int i = 0; i < m_T.rows; ++i) {
     cv::Mat mean, stddev;
     cv::Mat1f row = m_T.row(i);
-    if (std::all_of(row.begin(), row.end(),
-                    [](float val) { return isInvalid(val); })) {
-      res.at<float>(0, i) = Invalid;
-      res.at<float>(1, i) = Invalid;
-    } else {
+    if (!std::all_of(row.begin(), row.end(),
+                     [](float val) { return isInvalid(val); })) {
       cv::meanStdDev(m_T.row(i), mean, stddev, mask.row(i));
       res.at<float>(0, i) = static_cast<float>(mean.at<double>(0, 0));
       res.at<float>(1, i) = static_cast<float>(stddev.at<double>(0, 0));

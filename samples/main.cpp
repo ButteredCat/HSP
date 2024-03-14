@@ -115,7 +115,7 @@ void raw_process(Input input, Coeff coeff, std::string output) {
   int i{0};
   for (auto&& frame : L0_data) {
     *output_it++ = dpc(dbc(frame));
-    spdlog::debug("Frame {}", i++);
+    // spdlog::debug("Frame {}", i++);
   }
 }
 
@@ -128,73 +128,73 @@ void raw_process(Input input, Coeff coeff, std::string output) {
  */
 int main(int argc, char* argv[]) {
   auto start = system_clock::now();
-  //try {
-    po::options_description generic("Generic options");
-    generic.add_options()("version,v", "print version string")(
-        "help", "produce help message")("config,c", po::value<std::string>(),
-                                        "config file");
+  // try {
+  po::options_description generic("Generic options");
+  generic.add_options()("version,v", "print version string")(
+      "help", "produce help message")("config,c", po::value<std::string>(),
+                                      "config file");
 
-    po::options_description hidden("Hidden options");
-    hidden.add_options()("input-file", po::value<std::vector<std::string>>(),
-                         "input file");
+  po::options_description hidden("Hidden options");
+  hidden.add_options()("input-file", po::value<std::vector<std::string>>(),
+                       "input file");
 
-    po::positional_options_description positional;
-    positional.add("input-file", -1);
+  po::positional_options_description positional;
+  positional.add("input-file", -1);
 
-    po::options_description cmdline_options;
-    cmdline_options.add(generic).add(hidden);
+  po::options_description cmdline_options;
+  cmdline_options.add(generic).add(hidden);
 
-    po::variables_map vm;
-    po::store(po::command_line_parser(argc, argv)
-                  .options(cmdline_options)
-                  .positional(positional)
-                  .run(),
-              vm);
-    if (vm.count("version")) {
-      if (git_IsPopulated()) {
-        printf("Branch: %s\nCommit: %s", git_Branch(), git_CommitSHA1());
-        if (git_AnyUncommittedChanges()) {
-          printf(" (has uncommited changes)\n");
+  po::variables_map vm;
+  po::store(po::command_line_parser(argc, argv)
+                .options(cmdline_options)
+                .positional(positional)
+                .run(),
+            vm);
+  if (vm.count("version")) {
+    if (git_IsPopulated()) {
+      printf("Branch: %s\nCommit: %s", git_Branch(), git_CommitSHA1());
+      if (git_AnyUncommittedChanges()) {
+        printf(" (has uncommited changes)\n");
+      } else {
+        printf("\n");
+      }
+    }
+    printf("Build Date: %s, %s\n", __TIME__, __DATE__);
+    return 0;
+  }
+
+  // spdlog settings
+  // spdlog::set_pattern("[hsp] %+");
+  spdlog::set_pattern("%v");
+  spdlog::set_level(spdlog::level::debug);
+  spdlog::info("Branch: {}", git_Branch());
+  spdlog::info("Commit: {}", git_CommitSHA1());
+  spdlog::info("Built on: {} {}", __TIME__, __DATE__);
+
+  // GDAL init
+  GDALAllRegister();
+
+  std::vector<std::string> input_files;
+  if (vm.count("input-file")) {
+    input_files = vm["input-file"].as<decltype(input_files)>();
+    for (auto&& each : input_files) {
+      std::ifstream ifs(each);
+      std::string input(std::istreambuf_iterator<char>(ifs), {});
+      json::parse_options opt;
+      opt.allow_comments = true;
+      opt.allow_trailing_commas = true;
+      Order order = json::value_to<Order>(json::parse(input, {}, opt));
+
+      // #pragma omp parallel for
+      for (int i = 0; i < order.inputs.size(); ++i) {
+        if (order.inputs[i].is_raw) {
+          raw_process(order.inputs[i], order.coeff, order.outputs.at(i));
         } else {
-          printf("\n");
-        }
-      }
-      printf("Build Date: %s, %s\n", __TIME__, __DATE__);
-      return 0;
-    }
-
-    // spdlog settings
-    // spdlog::set_pattern("[hsp] %+");
-    spdlog::set_pattern("%v");
-    spdlog::set_level(spdlog::level::info);
-    spdlog::info("Branch: {}", git_Branch());
-    spdlog::info("Commit: {}", git_CommitSHA1());
-    spdlog::info("Built on: {} {}", __TIME__, __DATE__);
-
-    // GDAL init
-    GDALAllRegister();
-
-    std::vector<std::string> input_files;
-    if (vm.count("input-file")) {
-      input_files = vm["input-file"].as<decltype(input_files)>();
-      for (auto&& each : input_files) {
-        std::ifstream ifs(each);
-        std::string input(std::istreambuf_iterator<char>(ifs), {});
-        json::parse_options opt;
-        opt.allow_comments = true;
-        opt.allow_trailing_commas = true;
-        Order order = json::value_to<Order>(json::parse(input, {}, opt));
-
-//#pragma omp parallel for
-        for (int i = 0; i < order.inputs.size(); ++i) {
-          if (order.inputs[i].is_raw) {
-            raw_process(order.inputs[i], order.coeff, order.outputs.at(i));
-          } else {
-            img_process(order.inputs[i], order.coeff, order.outputs.at(i));
-          }
+          img_process(order.inputs[i], order.coeff, order.outputs.at(i));
         }
       }
     }
+  }
 
   //} catch (const std::exception& e) {
   //  std::cerr << e.what();

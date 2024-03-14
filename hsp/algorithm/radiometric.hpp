@@ -374,11 +374,8 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
       log_info[0] = patch;
       window.at<ComputingType>(window_center.x, window_center.y) = patch;
       cv::Mat spb = get_ratio_mat(window);
-      // cv::Mat inf_mask = (spb ==
-      // std::numeric_limits<ComputingType>::infinity());
       cv::Mat Tpb = spb.row(window_center.x).clone();
       spb.row(window_center.x) = Invalid;
-      // setCorrespondingToNaN(window, spb);
       window.setTo(cv::Scalar::all(Invalid), isInvalid(spb));
       auto TA1 = isoutlier(spb);
       auto TA2 = isoutlier(window);
@@ -408,14 +405,6 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
         cv::Mat idw_mid_row = idw.row(window_center.x).clone();
         idw_mid_row.setTo(cv::Scalar::all(0.0), isInvalid(window2));
         idw_mid_row.setTo(cv::Scalar::all(0.0), isInvalid(mean_spb));
-        // setCorrespondingToNaN(idw_mid_row, window2);
-        // setCorrespondingToNaN(idw_mid_row, mean_spb);
-        // cv::patchNaNs(idw_mid_row);
-
-        // cv::Mat mean_spbf = mean_spb.clone();
-        //  cv::patchNaNs(mean_spbf);
-        // mean_spb.setTo(cv::Scalar::all(0.0), isInvalid(mean_spb));
-        // window2.setTo(cv::Scalar::all(0.0), isInvalid(window2));
         uint16_t patch_alt = get_patch(window2.mul(mean_spb), idw_mid_row);
         log_info[1] = patch_alt;
         if (patch_alt != 0) {
