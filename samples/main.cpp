@@ -53,7 +53,7 @@ namespace po = boost::program_options;
  * @param output
  */
 
-void img_process(Input input, Coeff coeff, std::string output) {
+void img_process(Input input, Coeff coeff, const std::string& output) {
   auto src_dataset = GDALDatasetUniquePtr(
       GDALDataset::FromHandle(GDALOpen(input.filename.c_str(), GA_ReadOnly)));
   int n_samples = src_dataset->GetRasterXSize();
@@ -89,7 +89,7 @@ void img_process(Input input, Coeff coeff, std::string output) {
  * @param coeff
  * @param output
  */
-void raw_process(Input input, Coeff coeff, std::string output) {
+void raw_process(Input input, Coeff coeff, const std::string& output) {
   hsp::AHSIData L0_data(input.filename);
   L0_data.Traverse();
 
@@ -112,7 +112,7 @@ void raw_process(Input input, Coeff coeff, std::string output) {
   dbc.load(coeff.dark_a, coeff.dark_b);
   hsp::DefectivePixelCorrectionIDW dpc;
   dpc.load(coeff.badpixel);
-  int i{0};
+  // int i{0};
   for (auto&& frame : L0_data) {
     *output_it++ = dpc(dbc(frame));
     // spdlog::debug("Frame {}", i++);

@@ -76,7 +76,7 @@ cv::Mat load_text(const std::string& filename) {
   std::vector<T> data_vec;
   int n_lines{0}, count{0};
   for (std::string line; std::getline(in, line);) {
-    std::vector<T> data_line;
+    // std::vector<T> data_line;
     std::istringstream input(line);
     for (T data; input >> data;) {
       data_vec.push_back(data);
@@ -195,12 +195,12 @@ inline cv::Mat meanStdDev(const cv::Mat& m) {
   auto mask = ~isInvalid(m_T);
   cv::Mat res(2, m_T.rows, CV_32F, Invalid);
   for (int i = 0; i < m_T.rows; ++i) {
-    cv::Mat mean, stddev;
+    cv::Mat mean_, stddev;
     cv::Mat1f row = m_T.row(i);
     if (!std::all_of(row.begin(), row.end(),
                      [](float val) { return isInvalid(val); })) {
-      cv::meanStdDev(m_T.row(i), mean, stddev, mask.row(i));
-      res.at<float>(0, i) = static_cast<float>(mean.at<double>(0, 0));
+      cv::meanStdDev(m_T.row(i), mean_, stddev, mask.row(i));
+      res.at<float>(0, i) = static_cast<float>(mean_.at<double>(0, 0));
       res.at<float>(1, i) = static_cast<float>(stddev.at<double>(0, 0));
     }
   }
