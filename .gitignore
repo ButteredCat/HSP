@@ -41,6 +41,7 @@ bin/
 
 # test data
 data/
+Testing/
 
 # Visual Studio Settings
 CMakeSettings.json
