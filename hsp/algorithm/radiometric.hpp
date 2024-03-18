@@ -314,105 +314,107 @@ class DefectivePixelCorrectionIDW : public UnaryOperation<cv::Mat> {
     cv::copyMakeBorder(img_1d, padded, max_win_spectral_, max_win_spectral_,
                        max_win_spatial_, max_win_spatial_, cv::BORDER_CONSTANT,
                        cv::Scalar::all(Invalid));
-#ifndef __DEBUG__
-#pragma omp parallel for
-#endif  // __DEBUG__
-    for (int i = 0; i < dp_list_.size(); ++i) {
-      int repaired{0};
-      const cv::Point& defective_pixel = dp_list_[i];
-      auto win_spatial = row_label_.at<LabelType>(defective_pixel);
-      auto win_spectral = col_label_.at<LabelType>(defective_pixel);
-      cv::Mat idw_t(inverse_weights_table_,
-                    cv::Range(max_win_spectral_ - win_spectral,
-                              max_win_spectral_ + win_spectral + 1),
-                    cv::Range(max_win_spatial_ - win_spatial,
-                              max_win_spatial_ + win_spatial + 1));
-      cv::Mat window_t(
-          padded,
-          cv::Range(max_win_spectral_ + defective_pixel.y - win_spectral,
-                    max_win_spectral_ + defective_pixel.y + win_spectral + 1),
-          cv::Range(max_win_spatial_ + defective_pixel.x - win_spatial,
-                    max_win_spatial_ + defective_pixel.x + win_spatial + 1));
-      cv::Mat window, idw;
-      cv::transpose(window_t, window);
-      cv::transpose(idw_t, idw);
-      const cv::Point window_center(window.rows / 2, window.cols / 2);
-      double mean_window = cv::mean(window, window == window)[0];
-      cv::Mat mean_stddev_window = meanStdDev(window);
-      cv::Mat stddev_window = mean_stddev_window.row(1);
-      if (std::any_of(stddev_window.begin<ComputingType>(),
-                      stddev_window.end<ComputingType>(),
-                      [mean_window](ComputingType stddev) {
-                        return stddev > 0.1 * mean_window;
-                      })) {
-        double max_DN, min_DN;
-        cv::Point max_Loc, min_Loc;
-        cv::minMaxLoc(window, &min_DN, &max_DN, &min_Loc, &max_Loc,
-                      ~isInvalid(window));
-        cv::Mat1f window0 = window.clone();
-        auto n_max = cv::sum(window0 == max_DN);
-        auto n_min = cv::sum(window0 == min_DN);
-        window0.setTo(cv::Scalar::all(Invalid), window0 == min_DN);
-        window0.setTo(cv::Scalar::all(Invalid), window0 == max_DN);
-        auto mst1 = median(window0);
-        cv::Mat ratio = get_ratio_mat(window0);
-        if (cv::countNonZero(isInvalid(ratio)) != 0) {
-          auto alt_max = mst1.at<ComputingType>(0, max_Loc.x);
-          auto alt_min = mst1.at<ComputingType>(0, min_Loc.x);
-          if (!isInvalid(alt_max)) {
-            window.setTo(cv::Scalar::all(alt_max), window == max_DN);
-            repaired = 1;
-          }
-          if (!isInvalid(alt_min)) {
-            window.setTo(cv::Scalar::all(alt_min), window == min_DN);
-            repaired = 1;
+
+    cv::parallel_for_(cv::Range(0, dp_list_.size()), [&](const cv::Range&
+                                                             range) {
+      for (int i = range.start; i < range.end; ++i) {
+        int repaired{0};
+        const cv::Point& defective_pixel = dp_list_[i];
+        auto win_spatial = row_label_.at<LabelType>(defective_pixel);
+        auto win_spectral = col_label_.at<LabelType>(defective_pixel);
+        cv::Mat idw_t(inverse_weights_table_,
+                      cv::Range(max_win_spectral_ - win_spectral,
+                                max_win_spectral_ + win_spectral + 1),
+                      cv::Range(max_win_spatial_ - win_spatial,
+                                max_win_spatial_ + win_spatial + 1));
+        cv::Mat window_t(
+            padded,
+            cv::Range(max_win_spectral_ + defective_pixel.y - win_spectral,
+                      max_win_spectral_ + defective_pixel.y + win_spectral + 1),
+            cv::Range(max_win_spatial_ + defective_pixel.x - win_spatial,
+                      max_win_spatial_ + defective_pixel.x + win_spatial + 1));
+        cv::Mat window, idw;
+        cv::transpose(window_t, window);
+        cv::transpose(idw_t, idw);
+        const cv::Point window_center(window.rows / 2, window.cols / 2);
+        double mean_window = cv::mean(window, window == window)[0];
+        cv::Mat mean_stddev_window = meanStdDev(window);
+        cv::Mat stddev_window = mean_stddev_window.row(1);
+        if (std::any_of(stddev_window.begin<ComputingType>(),
+                        stddev_window.end<ComputingType>(),
+                        [mean_window](ComputingType stddev) {
+                          return stddev > 0.1 * mean_window;
+                        })) {
+          double max_DN, min_DN;
+          cv::Point max_Loc, min_Loc;
+          cv::minMaxLoc(window, &min_DN, &max_DN, &min_Loc, &max_Loc,
+                        ~isInvalid(window));
+          cv::Mat1f window0 = window.clone();
+          auto n_max = cv::sum(window0 == max_DN);
+          auto n_min = cv::sum(window0 == min_DN);
+          window0.setTo(cv::Scalar::all(Invalid), window0 == min_DN);
+          window0.setTo(cv::Scalar::all(Invalid), window0 == max_DN);
+          auto mst1 = median(window0);
+          cv::Mat ratio = get_ratio_mat(window0);
+          if (cv::countNonZero(isInvalid(ratio)) != 0) {
+            auto alt_max = mst1.at<ComputingType>(0, max_Loc.x);
+            auto alt_min = mst1.at<ComputingType>(0, min_Loc.x);
+            if (!isInvalid(alt_max)) {
+              window.setTo(cv::Scalar::all(alt_max), window == max_DN);
+              repaired = 1;
+            }
+            if (!isInvalid(alt_min)) {
+              window.setTo(cv::Scalar::all(alt_min), window == min_DN);
+              repaired = 1;
+            }
           }
         }
-      }
-      uint16_t patch{0}, patch_alt{0};
-      patch = get_patch(window, idw);
-      window.at<ComputingType>(window_center.x, window_center.y) = patch;
-      cv::Mat spb = get_ratio_mat(window);
-      cv::Mat Tpb = spb.row(window_center.x).clone();
-      spb.row(window_center.x) = Invalid;
-      window.setTo(cv::Scalar::all(Invalid), isInvalid(spb));
-      auto TA1 = isoutlier(spb);
-      auto TA2 = isoutlier(window);
-      cv::Mat spb_vec = spb.reshape(0, spb.rows * spb.cols);
-      auto TA3 = isoutlier(spb_vec).reshape(0, spb.rows);
-      cv::MatExpr outlier_mask = (TA1 + TA2 + TA3 != 0);
-      spb.setTo(cv::Scalar::all(Invalid), outlier_mask);
-      spb.setTo(cv::Scalar::all(Invalid), spb == 0);
-      window.setTo(cv::Scalar::all(Invalid), outlier_mask);
-      auto mean_stddev_spb = meanStdDev(spb);
-      auto mean_spb = mean_stddev_spb.row(0);
-      auto stddev_spb = mean_stddev_spb.row(1);
-      cv::Mat1i sum = TA1.row(window_center.x) + TA2.row(window_center.x) +
-                      isInvalid(window.row(window_center.x)) +
-                      isInvalid(mean_spb);
-      cv::Mat window2;
-      if (std::any_of(sum.begin(), sum.end(), [](int i) { return i == 0; })) {
-        window2 = window.row(window_center.x);
-      } else {
-        window2 = mean(window);
-      }
+        uint16_t patch{0}, patch_alt{0};
+        patch = get_patch(window, idw);
+        window.at<ComputingType>(window_center.x, window_center.y) = patch;
+        cv::Mat spb = get_ratio_mat(window);
+        cv::Mat Tpb = spb.row(window_center.x).clone();
+        spb.row(window_center.x) = Invalid;
+        window.setTo(cv::Scalar::all(Invalid), isInvalid(spb));
+        auto TA1 = isoutlier(spb);
+        auto TA2 = isoutlier(window);
+        cv::Mat spb_vec = spb.reshape(0, spb.rows * spb.cols);
+        auto TA3 = isoutlier(spb_vec).reshape(0, spb.rows);
+        cv::MatExpr outlier_mask = (TA1 + TA2 + TA3 != 0);
+        spb.setTo(cv::Scalar::all(Invalid), outlier_mask);
+        spb.setTo(cv::Scalar::all(Invalid), spb == 0);
+        window.setTo(cv::Scalar::all(Invalid), outlier_mask);
+        auto mean_stddev_spb = meanStdDev(spb);
+        auto mean_spb = mean_stddev_spb.row(0);
+        auto stddev_spb = mean_stddev_spb.row(1);
+        cv::Mat1i sum = TA1.row(window_center.x) + TA2.row(window_center.x) +
+                        isInvalid(window.row(window_center.x)) +
+                        isInvalid(mean_spb);
+        cv::Mat window2;
+        if (std::any_of(sum.begin(), sum.end(), [](int i) { return i == 0; })) {
+          window2 = window.row(window_center.x);
+        } else {
+          window2 = mean(window);
+        }
 
-      if (win_spatial < 0.8 * img.rows && win_spectral < 0.8 * img.cols &&
-          (cv::sum(Tpb <= mean_spb - stddev_spb)[0] != 0 ||
-           cv::sum(Tpb >= mean_spb + stddev_spb)[0] != 0 ||
-           cv::sum(~isInvalid(Tpb + mean_spb))[0] == 0)) {
-        cv::Mat idw_mid_row = idw.row(window_center.x).clone();
-        idw_mid_row.setTo(cv::Scalar::all(0.0), isInvalid(window2));
-        idw_mid_row.setTo(cv::Scalar::all(0.0), isInvalid(mean_spb));
-        patch_alt = get_patch(window2.mul(mean_spb), idw_mid_row);
-      }
-      img.at<uint16_t>(defective_pixel) = (patch_alt != 0) ? patch_alt : patch;
+        if (win_spatial < 0.8 * img.rows && win_spectral < 0.8 * img.cols &&
+            (cv::sum(Tpb <= mean_spb - stddev_spb)[0] != 0 ||
+             cv::sum(Tpb >= mean_spb + stddev_spb)[0] != 0 ||
+             cv::sum(~isInvalid(Tpb + mean_spb))[0] == 0)) {
+          cv::Mat idw_mid_row = idw.row(window_center.x).clone();
+          idw_mid_row.setTo(cv::Scalar::all(0.0), isInvalid(window2));
+          idw_mid_row.setTo(cv::Scalar::all(0.0), isInvalid(mean_spb));
+          patch_alt = get_patch(window2.mul(mean_spb), idw_mid_row);
+        }
+        img.at<uint16_t>(defective_pixel) =
+            (patch_alt != 0) ? patch_alt : patch;
 #ifdef __DEBUG__
-      spdlog::debug("({}, {}), patch={}, patch_alt={}, final={}, repaired={}",
-                    defective_pixel.y, defective_pixel.x, patch, patch_alt,
-                    img.at<uint16_t>(defective_pixel), repaired);
+        spdlog::debug("({}, {}), patch={}, patch_alt={}, final={}, repaired={}",
+                      defective_pixel.y, defective_pixel.x, patch, patch_alt,
+                      img.at<uint16_t>(defective_pixel), repaired);
 #endif
-    }
+      }
+    });
     return img;
   }
 

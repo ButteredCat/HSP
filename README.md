@@ -15,7 +15,6 @@ HSP是一个 Header-only 的库，只需要将`hsp/hsp`目录复制到新项目�
 - Boost >= 1.71
 - GDAL >= 2.3
 - OpenCV >= 4
-- OpenMP
 
 ### 代码静态检查工具
 [cpplint](https://github.com/cpplint/cpplint)

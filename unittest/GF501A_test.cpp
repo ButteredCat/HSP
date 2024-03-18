@@ -44,9 +44,9 @@ class GF501AVNIRTest : public ::testing::Test {
     auto poDriver = GetGDALDriverManager()->GetDriverByName("GTiff");
     ASSERT_NE(nullptr, poDriver);
     papszOptions = CSLSetNameValue(papszOptions, "INTERLEAVE", "BAND");
-    dataset = GDALDataset::FromHandle(
-        poDriver->Create(dst_file.string().c_str(), L0_data.samples(), L0_data.lines(),
-                         L0_data.bands(), GDT_UInt16, papszOptions));
+    dataset = GDALDataset::FromHandle(poDriver->Create(
+        dst_file.string().c_str(), L0_data.samples(), L0_data.lines(),
+        L0_data.bands(), GDT_UInt16, papszOptions));
     ASSERT_NE(nullptr, dataset);
   }
 
@@ -149,9 +149,9 @@ class GF501ASWIRTest : public ::testing::Test {
     auto poDriver = GetGDALDriverManager()->GetDriverByName("GTiff");
     ASSERT_NE(nullptr, poDriver);
     papszOptions = CSLSetNameValue(papszOptions, "INTERLEAVE", "BAND");
-    dataset = GDALDataset::FromHandle(
-        poDriver->Create(dst_file.string().c_str(), L0_data.samples(), L0_data.lines(),
-                         L0_data.bands(), GDT_UInt16, papszOptions));
+    dataset = GDALDataset::FromHandle(poDriver->Create(
+        dst_file.string().c_str(), L0_data.samples(), L0_data.lines(),
+        L0_data.bands(), GDT_UInt16, papszOptions));
     ASSERT_NE(nullptr, dataset);
   }
 
@@ -171,9 +171,13 @@ class GF501ASWIRTest : public ::testing::Test {
   const fs::path work_dir = fs::path("/tmp/hsp_unittest/");
   const fs::path src_file =
       testdata_dir /
-      fs::path("/GF501A/GF5A_AHSI_SW_20230722_354_621_L00000041058.DAT");
+      fs::path("/GF501A/GF5A_AHSI_SW_20230708_353_625_L00000038437.DAT");
   const fs::path dst_file =
       work_dir / src_file.filename().replace_extension("tif");
+  const fs::path dpc_baseline =
+      testdata_dir /
+      fs::path(
+          "/GF501A/GF5A_AHSI_SW_20230708_353_625_L00000038437_DBC_IDW.dat");
   AHSIData L0_data{src_file.string()};
 
   const fs::path dark_a = coeff_path / fs::path("/dark_a.tif");
@@ -195,6 +199,32 @@ TEST_F(GF501ASWIRTest, DefectivePixelCorrectionSpectral) {
   hsp::LineOutputIterator<uint16_t> it(dataset, 0);
   for (auto&& frame : L0_data) {
     *it++ = dpc(dbc(frame));
+  }
+}
+
+TEST_F(GF501ASWIRTest, DISABLED_DefectivePixelCorrectionIDW) {
+  hsp::GF501A_DBC dbc;
+  dbc.load(dark_a.string(), dark_b.string());
+  hsp::DefectivePixelCorrectionIDW dpc_idw;
+  dpc_idw.load(badpixel.string());
+  cv::Mat dpm = dpc_idw.get_col_label().clone();
+  dpm.setTo(cv::Scalar::all(1), dpm != 0);
+  auto baseline_dataset = GDALDatasetUniquePtr(GDALDataset::FromHandle(
+      GDALOpen(dpc_baseline.string().c_str(), GA_ReadOnly)));
+  hsp::LineInputIterator<uint16_t> baseline_beg(baseline_dataset.get(), 0);
+  for (auto&& frame : L0_data) {
+    cv::Mat m1 = dpc_idw(dbc(frame));//.getUMat(cv::AccessFlag::ACCESS_READ);
+    cv::Mat m2 = (*baseline_beg++);//.getUMat(cv::AccessFlag::ACCESS_READ);
+    cv::Mat diff, masked;
+    cv::absdiff(m1, m2, diff);
+    cv::multiply(diff, dpm, masked);
+    cv::Mat masked_f, m2_f, ratio;
+    masked.convertTo(masked_f, CV_32F);
+    m2.convertTo(m2_f, CV_32F);
+    cv::divide(masked_f, m2_f, ratio);
+    double min_val{0.}, max_val{0.};
+    cv::minMaxLoc(ratio, &min_val, &max_val);
+    // ASSERT_TRUE(max_val < 0.2);
   }
 }
 

@@ -23,11 +23,11 @@ include(CMakePrintHelpers)
 
 cmake_print_properties(
 TARGETS
-OpenMP::OpenMP_CXX opencv_core cmake_git_version_tracking
+opencv_core cmake_git_version_tracking
 PROPERTIES
 INTERFACE_COMPILE_OPTIONS
 INTERFACE_INCLUDE_DIRECTORIES
 INTERFACE_LINK_LIBRARIES
 )
 
-target_link_libraries(${TARGET_NAME} ${Boost_LIBRARIES} ${GDAL_LIBRARY} ${OpenCV_LIBS} OpenMP::OpenMP_CXX spdlog::spdlog cmake_git_version_tracking)
+target_link_libraries(${TARGET_NAME} ${Boost_LIBRARIES} ${GDAL_LIBRARY} ${OpenCV_LIBS} spdlog::spdlog cmake_git_version_tracking)
